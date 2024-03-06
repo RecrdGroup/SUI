@@ -141,7 +141,7 @@ module recrd::master {
 
   // Mints new Master and Metadata objects and returns the proof of ownership 
   // for the `Master<T>`.
-  public fun admin_new<T: drop>(
+  public fun new<T: drop>(
     _: &AdminCap,
     title: String,
     image_url: String,

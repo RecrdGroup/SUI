@@ -16,8 +16,11 @@ module recrd::profile {
   use sui::tx_context::{TxContext};
   use sui::transfer;
   use sui::object::{Self, UID};
+  use sui::transfer::{Receiving};
+
   use std::string::{String};
 
+  use recrd::master::Master;
   // === Friends ===
 
   // === Errors ===
@@ -26,7 +29,7 @@ module recrd::profile {
   // === Constants ===
 
   // === Structs ===
-
+  struct Promise<T> {}
   struct Profile has key, store {
     // unique id for the profile object
     id: UID,
@@ -66,4 +69,40 @@ module recrd::profile {
 
     self.watch_time = new_watch_time;
   }
+
+  // Function to receive a Master<T>. 
+  public fun receive_master<T: key + store>(
+    self: &mut Profile, 
+	  master: Receiving<Master<T>>,
+	  ctx: &TxContext
+  ) {}
+
+  // TODO: to be implemented
+  // public fun borrow_master<T: key + store>(
+  //   profile: &mut Profile,
+  //   master: Receiving<Master<T>>,
+  //   ctx: &TxContext
+  // ): (Master<T>, Promise<T>) { 
+  // }
+
+  // TODO: to be implemented 
+  // public fun return_master<T>(master: Master<T>, promise: Promise<T>, profile: address) {
+  //   let Promise {} = promise;
+  // }
+
+
+  // TODO: to be implemented 
+//   public fun buy<T: key + store>(
+//     seller_profile: &mut Profile,
+//     master: Receiving<Master<T>>,
+//     buyer_profile: &mut Profile,
+//     receipt: Receiving<Receipt>,
+//     ctx: &mut TxContext
+//   ) {
+// 	// Needs to receive both the receipt and a master. Receipt will validate the
+// 	// correctness of the master to be transferred as well as provide the
+//   // target profile address it should be transferred to
+//  }
+
+
 }
