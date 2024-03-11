@@ -44,4 +44,18 @@ module recrd::core {
       id: object::new(ctx)
     }
   }
+
+  // === Test Only ===
+  #[test_only]
+  public fun mint_for_testing(ctx: &mut TxContext): AdminCap {
+    AdminCap {
+      id: object::new(ctx)
+    }
+  }
+
+  #[test_only]
+  public fun burn_for_testing(admin_cap: AdminCap) {
+    let AdminCap { id } = admin_cap;
+    object::delete(id);
+  }
 }

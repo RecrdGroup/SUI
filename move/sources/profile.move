@@ -13,38 +13,68 @@ module recrd::profile {
 
   // === Imports ===
 
-  use sui::tx_context::{TxContext};
-  use sui::transfer;
-  use sui::object::{Self, UID};
-  use sui::transfer::{Receiving};
+  use sui::tx_context::{Self, TxContext};
+  use sui::object::{Self, UID, ID};
+  use sui::transfer::{Self, Receiving};
+  use sui::table::{Self, Table};
 
   use std::string::{String};
 
-  use recrd::master::Master;
+  use recrd::core::AdminCap;
+  use recrd::master::{Self, Master};
+  use recrd::receipt::{Self, Receipt};
+
   // === Friends ===
 
   // === Errors ===
   const EInvalidWatchTime: u64 = 0;
+  const EInvalidSaleStatus: u64 = 1;
+  const EInvalidAccessRights: u64 = 2;
+  const EInvalidObject: u64 = 3;
+  const EInvalidBuyer: u64 = 4;
+  const EInvalidAccessOption: u64 = 5;
 
   // === Constants ===
+  const BORROW_ACCESS: u8 = 0; // Allows to borrow with a hot potato, so it has to be returned
+  const REMOVE_ACCESS: u8 = 1; // Allows to remove the item from the Profile without restrictions
+
+  const ON_SALE: u8 = 1;
+  // const SUSPENDED: u8 = 2;
 
   // === Structs ===
-  struct Promise<phantom T> {}
+  struct Promise {
+    master_id: ID,
+    profile: address
+  }
+
   struct Profile has key, store {
     // unique id for the profile object
     id: UID,
     // user ID derived from RECRD app db
-    user_id: String, // type pending to decide the hashing approach
-    // username
+    user_id: String, 
+    // type pending to decide the hashing approach
     username: String,
+    // Keep a record of each user's address + RECRD address
+	  // in the format of a pair <address, REMOVE_ACCESS | BORROW_ACCESS>
+    authorizations: Table<address, u8>,
     // total time the user has spent on watching videos
     watch_time: u64, // in seconds
+    // (TBD) dynamic fields for every video watched
+    videos_watched: u64,
+	  // Number of adverts seen
+	  adverts_watched: u64,
+	  number_of_followers: u64,
+	  number_of_following: u64,
+  	ad_revenue: u64,
+	  commission_revenue: u64
   }
 
   // === Public Functions ===
 
   // Create a new `Profile` object and make it a shared object.
+  // @TODO: Who should be able to create profiles? Probably only admin
   public fun create_and_share(
+    _: &AdminCap,
     user_id: String,
     username: String,
     ctx: &mut TxContext,
@@ -52,14 +82,87 @@ module recrd::profile {
     transfer::public_share_object(
       Profile {
         id: object::new(ctx),
-        user_id: user_id,
-        username: username,
+        user_id,
+        username,
+        authorizations: table::new(ctx),
         watch_time: 0, // initial watch time is zero
+        videos_watched: 0,
+        adverts_watched: 0,
+        number_of_followers: 0,
+        number_of_following: 0,
+        ad_revenue: 0,
+        commission_revenue: 0,
       }
     );
   }
 
+  public fun authorize(_: &AdminCap, self: &mut Profile, user: address, access: u8, _ctx: &mut TxContext) {
+    assert!(access == REMOVE_ACCESS || access == BORROW_ACCESS, EInvalidAccessOption);
+    // @TODO: decide if only admin can authorize or users of access x can also authorize with access x
+    // let sender_access = *table::borrow(&self.authorizations, tx_context::sender(ctx));
+    // assert!(sender_access == access, EInvalidAccessRights);
+    table::add(&mut self.authorizations, user, access);
+  }
+
+  // Function to receive a Master<T>. 
+  #[allow(lint(self_transfer))]
+  public fun receive_master<T: key + store>(
+    self: &mut Profile, 
+    master: Receiving<Master<T>>,
+    ctx: &mut TxContext
+  ) {
+    let sender = tx_context::sender(ctx);
+    assert!(*table::borrow(&self.authorizations, sender) == REMOVE_ACCESS, EInvalidAccessRights);
+    transfer::public_transfer(receive_master_(self, master, ctx), sender);
+  }
+
+  // Borrows the Master temporarily with a Promise to return it back. 
+  public fun borrow_master<T: key + store>(
+    self: &mut Profile,
+    master: Receiving<Master<T>>,
+    ctx: &mut TxContext
+  ): (Master<T>, Promise) {
+    assert!(*table::borrow(&self.authorizations, tx_context::sender(ctx)) == BORROW_ACCESS, EInvalidAccessRights);
+    let master = receive_master_(self, master, ctx);
+    let promise = Promise { 
+      master_id: object::id(&master),
+      profile: object::id_address(self)
+    };
+    (master, promise)
+  }
+
+  // Returns the master back to the profile
+  public fun return_master<T>(master: Master<T>, promise: Promise) {
+    let Promise {master_id, profile} = promise;
+    assert!(object::id(&master) == master_id, EInvalidObject);
+    transfer::public_transfer(master, profile);
+  }
+
+  // TODO: to be implemented 
+  public fun buy<T: key + store>(
+    seller_profile: &mut Profile,
+    master: Receiving<Master<T>>,
+    buyer_profile: &mut Profile,
+    receipt: Receiving<Receipt>,
+    ctx: &mut TxContext
+  ) {
+	// Needs to receive both the receipt and a master. Receipt will validate the
+	// correctness of the master to be transferred as well as provide the
+  // target profile address it should be transferred to
+    let receipt = receipt::receive(&mut buyer_profile.id, receipt);
+    let (master_id, user_profile) = receipt::burn(receipt);
+    let master = receive_master_(seller_profile, master, ctx);
+    assert!(object::id(&master) == master_id, EInvalidObject);
+    // @TODO: isn't the user_profile in the receipt redundant here? Especially given that receipts only have key and can not be transferred.
+    assert!(object::id_address(buyer_profile) == user_profile, EInvalidBuyer);
+
+    transfer::public_transfer(master, user_profile);
+  }
+
+
+  // === Update functions ===
   // Update the `watch_time` field of the `Profile` object.
+  // @TODO: Should the update functions be unrestricted?
   public fun update_watch_time(
     self: &mut Profile,
     new_watch_time: u64,
@@ -70,39 +173,55 @@ module recrd::profile {
     self.watch_time = new_watch_time;
   }
 
-  // Function to receive a Master<T>. 
-  public fun receive_master<T: key + store>(
+
+  // === Private Functions ===
+  fun receive_master_<T: key + store>(
     self: &mut Profile, 
-	  master: Receiving<Master<T>>,
-	  ctx: &TxContext
-  ) {}
+	  master_to_receive: Receiving<Master<T>>,
+	  _ctx: &TxContext
+  ): Master<T> {
+    let master = transfer::public_receive(&mut self.id, master_to_receive);
+    assert!(master::sale_status(&master) != ON_SALE, EInvalidSaleStatus);
+    master
+  }
 
-  // TODO: to be implemented
-  // public fun borrow_master<T: key + store>(
-  //   profile: &mut Profile,
-  //   master: Receiving<Master<T>>,
-  //   ctx: &TxContext
-  // ): (Master<T>, Promise<T>) { 
-  // }
+  // === Test Only ===
+  #[test_only]
+  public fun create_for_testing(user_id: String, username: String, ctx: &mut TxContext): Profile {
+    Profile {
+      id: object::new(ctx),
+      user_id,
+      username,
+      authorizations: table::new(ctx),
+      watch_time: 0, // initial watch time is zero
+      videos_watched: 0,
+      adverts_watched: 0,
+      number_of_followers: 0,
+      number_of_following: 0,
+      ad_revenue: 0,
+      commission_revenue: 0,
+    }
+  }
 
-  // TODO: to be implemented 
-  // public fun return_master<T>(master: Master<T>, promise: Promise<T>, profile: address) {
-  //   let Promise {} = promise;
-  // }
+  #[test_only]
+  public fun burn_for_testing(profile: Profile) {
+     let Profile {
+      id,
+      user_id: _,
+      username: _,
+      authorizations,
+      watch_time: _, // initial watch time is zero
+      videos_watched: _,
+      adverts_watched: _,
+      number_of_followers: _,
+      number_of_following: _,
+      ad_revenue: _,
+      commission_revenue: _,
+    } = profile;
 
-
-  // TODO: to be implemented 
-//   public fun buy<T: key + store>(
-//     seller_profile: &mut Profile,
-//     master: Receiving<Master<T>>,
-//     buyer_profile: &mut Profile,
-//     receipt: Receiving<Receipt>,
-//     ctx: &mut TxContext
-//   ) {
-// 	// Needs to receive both the receipt and a master. Receipt will validate the
-// 	// correctness of the master to be transferred as well as provide the
-//   // target profile address it should be transferred to
-//  }
+    object::delete(id);
+    table::drop(authorizations);
+  }
 
 
 }

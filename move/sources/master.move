@@ -23,6 +23,8 @@ module recrd::master {
   // === Errors ===
 
   // === Constants ===
+  const ON_SALE: u8 = 1;
+  const SUSPENDED: u8 = 2;
 
   // === Structs ===
 
@@ -43,8 +45,7 @@ module recrd::master {
     title: String,
     // URL for master video or audio (needed for display)
     image_url: String,
-    // whether the master is currently on sale
-    on_sale: bool,
+    sale_status: u8,
   }
 
   // Master metadata object that will hold all master-related metadata.
@@ -151,7 +152,7 @@ module recrd::master {
     royalty_percentage_bp: u16,
     master_metadata_parent: Option<ID>,
     master_metadata_origin: Option<ID>,
-    on_sale: bool,
+    sale_status: u8,
     ctx: &mut TxContext,
   ): Master<T> {
     // Create a new UID for the master object
@@ -189,7 +190,7 @@ module recrd::master {
       metadata_ref: metadata_id,
       title,
       image_url,
-      on_sale,
+      sale_status,
     }
   }
 
@@ -204,7 +205,7 @@ module recrd::master {
       metadata_ref: _, 
       title: _,
       image_url: _,
-      on_sale: _,
+      sale_status: _,
     } = master;
 
     // Delete the `Master<T>` object and its UID.
@@ -235,5 +236,9 @@ module recrd::master {
 
     // Delete the `Metadata<T>` object and its UID.
     object::delete(id);
+  }
+
+  public fun sale_status<T>(master: &Master<T>): u8 {
+    master.sale_status
   }
 }
