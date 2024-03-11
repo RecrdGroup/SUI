@@ -29,7 +29,7 @@ module recrd::profile {
   // === Constants ===
 
   // === Structs ===
-  struct Promise<T> {}
+  struct Promise<phantom T> {}
   struct Profile has key, store {
     // unique id for the profile object
     id: UID,
