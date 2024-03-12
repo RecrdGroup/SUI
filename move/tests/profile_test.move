@@ -19,7 +19,7 @@ module recrd::profile_test {
     public fun ctx(): TxContext { tx_context::dummy() }
 
 
-    // This test needs accessors to properly check that we are minting as expected. 
+    // This test can't work with dummy context
     #[test]
     public fun mints_profile() {
         let ctx = ctx();
