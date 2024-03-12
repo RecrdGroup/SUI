@@ -42,6 +42,8 @@ module recrd::profile {
   // const SUSPENDED: u8 = 2;
 
   // === Structs ===
+
+  // A Promise hot potato to ensure the master is returned back to the profile when borrowed by someone.
   struct Promise {
     master_id: ID,
     profile: address
@@ -110,10 +112,9 @@ module recrd::profile {
     self: &mut Profile, 
     master: Receiving<Master<T>>,
     ctx: &mut TxContext
-  ) {
-    let sender = tx_context::sender(ctx);
-    assert!(*table::borrow(&self.authorizations, sender) == REMOVE_ACCESS, EInvalidAccessRights);
-    transfer::public_transfer(receive_master_(self, master, ctx), sender);
+  ): Master<T> {
+    assert!(*table::borrow(&self.authorizations, tx_context::sender(ctx)) == REMOVE_ACCESS, EInvalidAccessRights);
+    receive_master_(self, master, ctx)
   }
 
   // Borrows the Master temporarily with a Promise to return it back. 
@@ -146,9 +147,9 @@ module recrd::profile {
     receipt: Receiving<Receipt>,
     ctx: &mut TxContext
   ) {
-	// Needs to receive both the receipt and a master. Receipt will validate the
-	// correctness of the master to be transferred as well as provide the
-  // target profile address it should be transferred to
+    // Needs to receive both the receipt and a master. Receipt will validate the
+    // correctness of the master to be transferred as well as provide the
+    // target profile address it should be transferred to
     let receipt = receipt::receive(&mut buyer_profile.id, receipt);
     let (master_id, user_profile) = receipt::burn(receipt);
     let master = receive_master_(seller_profile, master, ctx);
@@ -161,6 +162,7 @@ module recrd::profile {
 
 
   // === Update functions ===
+
   // Update the `watch_time` field of the `Profile` object.
   // @TODO: Should the update functions be unrestricted?
   public fun update_watch_time(
@@ -173,6 +175,24 @@ module recrd::profile {
     self.watch_time = new_watch_time;
   }
 
+  // === Accessors ===
+  // @TODO: Do we need to provide programmatic access all the profile fields? 
+
+  // public fun name(self: &Profile): String {
+  //   self.username
+  // }
+
+  // public fun user_id(self: &Profile): String {
+  //   self.user_id
+  // }
+
+  // public fun access_rights(self: &Profile, user: address): u8 {
+  //   *table::borrow(&self.authorizations, user)
+  // }
+
+  // public fun watch_time(self: &Profile): u64 {
+  //   self.watch_time
+  // }
 
   // === Private Functions ===
   fun receive_master_<T: key + store>(
@@ -223,5 +243,55 @@ module recrd::profile {
     table::drop(authorizations);
   }
 
+  // === Tests ===
+  #[test_only]
+  use recrd::core;
+  #[test_only]
+  use std::string::utf8;
+  #[test_only]
+  use sui::test_scenario::{Self as ts};
+
+  // This is the only test that doesn't need accessors but requires a few extra test_only imports
+  #[test]
+  public fun mints_profile() {
+        let scenario = ts::begin(@0xDECAF);
+        let test = &mut scenario;
+        let ctx = ts::ctx(test);
+        let admin_cap = core::mint_for_testing(ctx);
+        create_and_share(&admin_cap, utf8(b"Bob ID"), utf8(b"Bob"), ctx);
+        // --- can check the state with test scenario ---
+        ts::next_tx(test, @0xDECAF);
+        let profile = ts::take_shared<Profile>(&scenario);
+        // So we still have to use scenario but no need to write accessors above 
+        assert!(profile.user_id == utf8(b"Bob ID"), 0);
+        assert!(profile.username == utf8(b"Bob"), 0);
+        assert!(table::is_empty(&profile.authorizations), 0);
+        assert!(profile.watch_time == 0, 0);
+        assert!(profile.videos_watched == 0, 0);
+        assert!(profile.adverts_watched == 0, 0);
+        assert!(profile.number_of_followers == 0, 0);
+        assert!(profile.number_of_following == 0, 0);
+        assert!(profile.ad_revenue == 0, 0);
+        assert!(profile.commission_revenue == 0, 0);
+        ts::return_shared(profile);
+        // ------
+        core::burn_for_testing(admin_cap);
+        ts::end(scenario);
+  }
+
+  // dummy context can work for non transfer operations
+  #[test]
+  public fun admin_authorizes_address() {
+      let ctx = tx_context::dummy();
+      let admin_cap = core::mint_for_testing(&mut ctx);
+      // We don't care about the creation here since we have already tested minting
+      // So we can use dummy ctx & create_for_testing to write the test for the authorization flow
+      let profile = create_for_testing(utf8(b"Bob ID"), utf8(b"Bob"), &mut ctx);
+      authorize(&admin_cap, &mut profile, @0xC0FFEE, 1, &mut ctx);
+      let user_access = *table::borrow(&profile.authorizations, @0xC0FFEE);
+      assert!(user_access == 1, EInvalidAccessRights);
+      core::burn_for_testing(admin_cap);
+      burn_for_testing(profile);
+  }
 
 }
