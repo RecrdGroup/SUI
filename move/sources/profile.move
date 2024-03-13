@@ -27,12 +27,13 @@ module recrd::profile {
   // === Friends ===
 
   // === Errors ===
-  const EInvalidWatchTime: u64 = 0;
+  const ENewValueShouldBeHigher: u64 = 0;
   const EInvalidSaleStatus: u64 = 1;
   const EInvalidAccessRights: u64 = 2;
   const EInvalidObject: u64 = 3;
   const EInvalidBuyer: u64 = 4;
   const EInvalidAccessOption: u64 = 5;
+  const ENoEntryFound: u64 = 6;
 
   // === Constants ===
   const BORROW_ACCESS: u8 = 0; // Allows to borrow with a hot potato, so it has to be returned
@@ -163,36 +164,121 @@ module recrd::profile {
 
   // === Update functions ===
 
+  // @TODO: (note) Assumption that the user id & username do not change 
+
   // Update the `watch_time` field of the `Profile` object.
-  // @TODO: Should the update functions be unrestricted?
   public fun update_watch_time(
+    _: &AdminCap,
     self: &mut Profile,
     new_watch_time: u64,
   ) {
     // Make sure the watch_time is greater than the current watch_time.
-    assert!(new_watch_time > self.watch_time, EInvalidWatchTime);
+    assert!(new_watch_time > self.watch_time, ENewValueShouldBeHigher);
 
     self.watch_time = new_watch_time;
   }
 
+  public fun update_videos_watched(
+    _: &AdminCap,
+    self: &mut Profile,
+    new_videos_watched: u64,
+  ) {
+    assert!(new_videos_watched > self.videos_watched, ENewValueShouldBeHigher);
+    self.videos_watched = new_videos_watched;
+  }
+
+  public fun update_adverts_watched(
+    _: &AdminCap,
+    self: &mut Profile,
+    new_adverts_watched: u64,
+  ) {
+    assert!(new_adverts_watched > self.adverts_watched, ENewValueShouldBeHigher);
+    self.adverts_watched = new_adverts_watched;
+  }
+
+  // @TODO: any restrictions for this one?
+  public fun update_number_of_followers(
+    _: &AdminCap,
+    self: &mut Profile,
+    new_number_of_followers: u64,
+  ) {
+    self.number_of_followers = new_number_of_followers;
+  }
+
+  // @TODO: any restrictions for this one?
+  public fun update_number_of_following(
+    _: &AdminCap,
+    self: &mut Profile,
+    new_number_of_following: u64,
+  ) {
+    self.number_of_following = new_number_of_following;
+  }
+
+  // @TODO: can this only be additive? 
+  public fun update_ad_revenue(
+    _: &AdminCap,
+    self: &mut Profile,
+    new_ad_revenue: u64,
+  ) {
+    assert!(new_ad_revenue > self.ad_revenue, ENewValueShouldBeHigher);
+    self.ad_revenue = new_ad_revenue;
+  }
+
+  // @TODO: can this only be additive? 
+  public fun update_commission_revenue(
+    _: &AdminCap,
+    self: &mut Profile,
+    new_commission_revenue: u64,
+  ) {
+    assert!(new_commission_revenue > self.commission_revenue, ENewValueShouldBeHigher);
+    self.commission_revenue = new_commission_revenue;
+  }
+
   // === Accessors ===
   // @TODO: Do we need to provide programmatic access all the profile fields? 
+  // @TODO: Should we expose accessors publicly or test_only?
 
-  // public fun name(self: &Profile): String {
-  //   self.username
-  // }
 
-  // public fun user_id(self: &Profile): String {
-  //   self.user_id
-  // }
+  public fun user_id(self: &Profile): String {
+    self.user_id
+  }
 
-  // public fun access_rights(self: &Profile, user: address): u8 {
-  //   *table::borrow(&self.authorizations, user)
-  // }
+  public fun username(self: &Profile): String {
+    self.username
+  }
 
-  // public fun watch_time(self: &Profile): u64 {
-  //   self.watch_time
-  // }
+  public fun access_rights(self: &Profile, user: address): u8 {
+    assert!(table::contains(&self.authorizations, user), ENoEntryFound);
+    *table::borrow(&self.authorizations, user)
+  }
+
+  public fun watch_time(self: &Profile): u64 {
+    self.watch_time
+  }
+
+  public fun videos_watched(self: &Profile): u64 {
+    self.videos_watched
+  }
+
+  public fun adverts_watched(self: &Profile): u64 {
+    self.adverts_watched
+  }
+  
+  public fun number_of_followers(self: &Profile): u64 {
+    self.number_of_followers
+  }
+
+  public fun number_of_following(self: &Profile): u64 {
+    self.number_of_following
+  }
+
+  public fun ad_revenue(self: &Profile): u64 {
+    self.ad_revenue
+  }
+  
+  public fun commission_revenue(self: &Profile): u64 {
+    self.commission_revenue
+  }
 
   // === Private Functions ===
   fun receive_master_<T: key + store>(
@@ -241,57 +327,6 @@ module recrd::profile {
 
     object::delete(id);
     table::drop(authorizations);
-  }
-
-  // === Tests ===
-  #[test_only]
-  use recrd::core;
-  #[test_only]
-  use std::string::utf8;
-  #[test_only]
-  use sui::test_scenario::{Self as ts};
-
-  // This is the only test that doesn't need accessors but requires a few extra test_only imports
-  #[test]
-  public fun mints_profile() {
-        let scenario = ts::begin(@0xDECAF);
-        let test = &mut scenario;
-        let ctx = ts::ctx(test);
-        let admin_cap = core::mint_for_testing(ctx);
-        create_and_share(&admin_cap, utf8(b"Bob ID"), utf8(b"Bob"), ctx);
-        // --- can check the state with test scenario ---
-        ts::next_tx(test, @0xDECAF);
-        let profile = ts::take_shared<Profile>(&scenario);
-        // So we still have to use scenario but no need to write accessors above 
-        assert!(profile.user_id == utf8(b"Bob ID"), 0);
-        assert!(profile.username == utf8(b"Bob"), 0);
-        assert!(table::is_empty(&profile.authorizations), 0);
-        assert!(profile.watch_time == 0, 0);
-        assert!(profile.videos_watched == 0, 0);
-        assert!(profile.adverts_watched == 0, 0);
-        assert!(profile.number_of_followers == 0, 0);
-        assert!(profile.number_of_following == 0, 0);
-        assert!(profile.ad_revenue == 0, 0);
-        assert!(profile.commission_revenue == 0, 0);
-        ts::return_shared(profile);
-        // ------
-        core::burn_for_testing(admin_cap);
-        ts::end(scenario);
-  }
-
-  // dummy context can work for non transfer operations
-  #[test]
-  public fun admin_authorizes_address() {
-      let ctx = tx_context::dummy();
-      let admin_cap = core::mint_for_testing(&mut ctx);
-      // We don't care about the creation here since we have already tested minting
-      // So we can use dummy ctx & create_for_testing to write the test for the authorization flow
-      let profile = create_for_testing(utf8(b"Bob ID"), utf8(b"Bob"), &mut ctx);
-      authorize(&admin_cap, &mut profile, @0xC0FFEE, 1, &mut ctx);
-      let user_access = *table::borrow(&profile.authorizations, @0xC0FFEE);
-      assert!(user_access == 1, EInvalidAccessRights);
-      core::burn_for_testing(admin_cap);
-      burn_for_testing(profile);
   }
 
 }

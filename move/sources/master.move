@@ -15,8 +15,8 @@ module recrd::master {
   use sui::package;
   use sui::transfer;
   use sui::display;
-  use std::option::{Option};
-  use recrd::core::{AdminCap};
+  use std::option::Option;
+  use recrd::core::AdminCap;
 
   // === Friends ===
 
@@ -241,4 +241,5 @@ module recrd::master {
   public fun sale_status<T>(master: &Master<T>): u8 {
     master.sale_status
   }
+
 }
