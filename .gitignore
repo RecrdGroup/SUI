@@ -2,3 +2,5 @@
 */build
 .env
 .publish.res.json
+.coverage_map.mvcov
+.trace
