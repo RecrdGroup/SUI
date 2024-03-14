@@ -2,3 +2,6 @@
 */build
 .env
 .publish.res.json
+
+doc/c4/workspace.json
+.structurizr
