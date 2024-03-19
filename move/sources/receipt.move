@@ -1,11 +1,12 @@
 module recrd::receipt {
     // === Imports ===
     use sui::object::{Self, UID, ID};
-    use sui::transfer;
+    use sui::transfer::{Self, Receiving};
     use sui::tx_context::TxContext;
     use recrd::core::AdminCap;
 
     // === Friends ===
+    friend recrd::profile;
 
     // === Errors ===
 
@@ -32,10 +33,15 @@ module recrd::receipt {
         transfer::transfer(receipt, addr);
     }
 
-    public fun burn(receipt: Receipt) {
+    public fun burn(receipt: Receipt): (ID, address) {
         // deconstruct and burn receipt
-        let Receipt { id, master_id: _, user_profile: _ } = receipt;
+        let Receipt { id, master_id, user_profile } = receipt;
         object::delete(id);
+       (master_id, user_profile)
+    }
+
+    public(friend) fun receive(profile_id: &mut UID, receipt: Receiving<Receipt>): Receipt {
+        transfer::receive(profile_id, receipt)
     }
 
 }
