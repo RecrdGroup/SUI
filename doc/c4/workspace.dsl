@@ -13,8 +13,8 @@ workspace {
                 group "RECRD Wen 2.0 Backend" {
 
                     microserviceX = container "MicroService X" "Indicates the variety of RECRD's microservices serving different business needs" "Java/Spring Boot" "Service"
-                    paymentsService = container "Payments Service" "The service responsible for handling payments (Ad-revenues, marketplace fiat payments etc.)" "Java/Spring Boot" "SecondaryService, Service"
-                    web3IntegrationService = container "Blockchain integration service" "Service responsible for creating custodial wallets and applying smart contract calls for updaing UserPorfile and Master on-chain assets" "NodeJS/Sui TS SDK" "MainService, Service"
+                    paymentsService = container "Lena - Payments Service" "The service responsible for handling payments (Ad-revenues, marketplace fiat payments etc.)" "Java/Spring Boot" "SecondaryService, Service"
+                    web3IntegrationService = container "Salado - Blockchain integration service" "Service responsible for creating custodial wallets and applying smart contract calls for updaing UserPorfile and Master on-chain assets" "NodeJS/Sui TS SDK" "MainService, Service"
                 }
                 group "RECRD Apps" {
                     recrdAndroidApp = container "RECRD Android App" "Native Android RECRD app with Enoki and Blockchain integration capabilities" "Kotlin/Sui Mobile SDK" "MobileApp"
@@ -47,7 +47,7 @@ workspace {
                 masterObj = component "Master<T>" "The basic tradeable asset that represents user generated content on chain, owned by the Profile object on behalf of the user." "Move Owned Object" "Move Struct"
                 metadataObj = component "Metadata<T>" "Companion to the Master object, owned by the Recrd Admin in order to be able to manage user on-chain assets as per business, regulation or any other rules." "Move Owned Object" "Move Struct"
                 profileObj = component "Profile" "Shared object that acts as a wallet abstraction which stores assets (Masters) on the user's bahalf. Operations on this object allowed by commiting an associated Receipt or by having been whitelisted by an AdminCap Owner." "Move Shared Object" "Move Struct"
-                receiptObj = component "Receipt" "Short-lived object that is being assigned to a user from an AdminCap owner and used as a proff of payment for an assets trading operation." "Move Owned Object" "Move Struct"
+                receiptObj = component "Receipt" "Short-lived object that is being assigned to a user from an AdminCap owner and used as a proof of payment for an assets trading operation." "Move Owned Object" "Move Struct"
             }
         }
 
