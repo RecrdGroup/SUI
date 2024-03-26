@@ -46,6 +46,7 @@ module recrd::core {
   }
 
   // === Test Only ===
+  
   #[test_only]
   public fun mint_for_testing(ctx: &mut TxContext): AdminCap {
     AdminCap {

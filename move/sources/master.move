@@ -23,8 +23,6 @@ module recrd::master {
   // === Errors ===
 
   // === Constants ===
-  const ON_SALE: u8 = 1;
-  const SUSPENDED: u8 = 2;
 
   // === Structs ===
 
@@ -184,6 +182,7 @@ module recrd::master {
     // Publicly share the metadata object. 
     transfer::public_share_object(metadata);
 
+    // @TODO: shouldn't we just transfer it to the profile since its an argument we pass in the new function?
     // Create and return the `Master<T>` proof of ownership. 
     Master<T> {
       id: master_uid,
@@ -237,9 +236,224 @@ module recrd::master {
     // Delete the `Metadata<T>` object and its UID.
     object::delete(id);
   }
+  
+  // --- Accessors ---
+
+  // ~~~ Master ~~~
+
+  public fun metadata_ref<T>(master: &Master<T>): ID {
+    master.metadata_ref
+  }
+
+  public fun title<T>(master: &Master<T>): String {
+    master.title
+  }
+
+  public fun image_url<T>(master: &Master<T>): String {
+    master.image_url
+  }
 
   public fun sale_status<T>(master: &Master<T>): u8 {
     master.sale_status
+  }
+
+  // ~~~ Metadata ~~~
+
+  public fun master_id<T>(metadata: &Metadata<T>): ID {
+    metadata.master_id
+  }
+
+  public fun description<T>(metadata: &Metadata<T>): String {
+    metadata.description
+  }
+
+  public fun hashtags<T>(metadata: &Metadata<T>): vector<String> {
+    metadata.hashtags
+  }
+
+  public fun creator_profile_id<T>(metadata: &Metadata<T>): ID {
+    metadata.creator_profile_id
+  }
+
+  public fun royalty_percentage_bp<T>(metadata: &Metadata<T>): u16 {
+    metadata.royalty_percentage_bp
+  }
+
+  public fun master_metadata_parent<T>(metadata: &Metadata<T>): Option<ID> {
+    metadata.master_metadata_parent
+  }
+
+  public fun master_metadata_origin<T>(metadata: &Metadata<T>): Option<ID> {
+    metadata.master_metadata_origin
+  }
+
+  public fun expressions<T>(metadata: &Metadata<T>): u64 {
+    metadata.expressions
+  }
+
+  public fun revenue_total<T>(metadata: &Metadata<T>): u64 {
+    metadata.revenue_total
+  }
+
+  public fun revenue_available<T>(metadata: &Metadata<T>): u64 {
+    metadata.revenue_available
+  }
+
+  public fun revenue_paid<T>(metadata: &Metadata<T>): u64 {
+    metadata.revenue_paid
+  }
+
+  public fun revenue_pending<T>(metadata: &Metadata<T>): u64 {
+    metadata.revenue_pending
+  }
+
+  // --- Setters & Mutations ---
+  // @TODO: to check access level for these functions
+
+  // ~~~ Master ~~~
+
+  // Admin can update the metadata reference for a Master object.
+  public fun set_metadata_ref<T>(
+    _: &AdminCap,
+    master: &mut Master<T>,
+    metadata_ref: ID,
+  ) {
+    master.metadata_ref = metadata_ref;
+  }
+
+  // Anyone with access to the Master can update the title.
+  public fun set_title<T>(
+    master: &mut Master<T>,
+    title: String,
+  ) {
+    master.title = title;
+  }
+
+  // Anyone with access to the Master can update the image URL.
+  public fun set_image_url<T>(
+    master: &mut Master<T>,
+    image_url: String,
+  ) {
+    master.image_url = image_url;
+  }
+
+  // Admin can update the sale status for a Master object.
+  public fun set_sale_status<T>(
+    _: &AdminCap,
+    master: &mut Master<T>,
+    sale_status: u8,
+  ) {
+    master.sale_status = sale_status;
+  }
+
+  // ~~~ Metadata ~~~
+
+  // Admin can update the master ID for a Metadata object.
+  public fun set_master_id<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    master_id: ID,
+  ) {
+    metadata.master_id = master_id;
+  }
+
+  // Admin can update the description for a Metadata object.
+  public fun set_description<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    description: String,
+  ) {
+    metadata.description = description;
+  }
+
+  // Admin can update the hashtags for a Metadata object.
+  public fun set_hashtags<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    hashtags: vector<String>,
+  ) {
+    metadata.hashtags = hashtags;
+  }
+
+  // Admin can update the creator profile ID for a Metadata object.
+  public fun set_creator_profile_id<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    creator_profile_id: ID,
+  ) {
+    metadata.creator_profile_id = creator_profile_id;
+  }
+
+  // Admin can update the royalty percentage BP for a Metadata object.
+  public fun set_royalty_percentage_bp<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    royalty_percentage_bp: u16,
+  ) {
+    metadata.royalty_percentage_bp = royalty_percentage_bp;
+  }
+
+  // Admin can update the master metadata parent for a Metadata object.
+  public fun set_master_metadata_parent<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    master_metadata_parent: Option<ID>,
+  ) {
+    metadata.master_metadata_parent = master_metadata_parent;
+  }
+
+  // Admin can update the master metadata origin for a Metadata object.
+  public fun set_master_metadata_origin<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    master_metadata_origin: Option<ID>,
+  ) {
+    metadata.master_metadata_origin = master_metadata_origin;
+  }
+
+  // Admin can update the expressions for a Metadata object.
+  public fun set_expressions<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    expressions: u64,
+  ) {
+    metadata.expressions = expressions;
+  }
+
+  // Admin can update the revenue total for a Metadata object.
+  public fun set_revenue_total<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    revenue_total: u64,
+  ) {
+    metadata.revenue_total = revenue_total;
+  }
+
+  // Admin can update the revenue available for a Metadata object.
+  public fun set_revenue_available<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    revenue_available: u64,
+  ) {
+    metadata.revenue_available = revenue_available;
+  }
+
+  // Admin can update the revenue paid for a Metadata object.
+  public fun set_revenue_paid<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    revenue_paid: u64,
+  ) {
+    metadata.revenue_paid = revenue_paid;
+  }
+
+  // Admin can update the revenue pending for a Metadata object.
+  public fun set_revenue_pending<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    revenue_pending: u64,
+  ) {
+    metadata.revenue_pending = revenue_pending;
   }
 
 }
