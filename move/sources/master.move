@@ -8,21 +8,29 @@
 module recrd::master {
 
   // === Imports ===
+
+  use std::string::{String, utf8};
+  use std::option::Option;
+  use std::vector;
   
   use sui::object::{Self, UID, ID};
-  use std::string::{String, utf8};
   use sui::tx_context::{Self, TxContext};
   use sui::package;
   use sui::transfer;
   use sui::display;
-  use std::option::Option;
   use recrd::core::AdminCap;
 
   // === Friends ===
 
   // === Errors ===
+  const EHashtagDoesNotExist: u64 = 1;
+  const EInvalidNewRevenueTotal: u64 = 2;
+  const EInvalidNewRevenuePaid: u64 = 3;
+  const EInvalidSaleStatus: u64 = 4;
 
   // === Constants ===
+  const ON_SALE: u8 = 1;
+  const SUSPENDED: u8 = 2;
 
   // === Structs ===
 
@@ -312,14 +320,15 @@ module recrd::master {
 
   // ~~~ Master ~~~
 
+  // @TODO: probbaly should be removed, the metadata ref should always remain the same.
   // Admin can update the metadata reference for a Master object.
-  public fun set_metadata_ref<T>(
-    _: &AdminCap,
-    master: &mut Master<T>,
-    metadata_ref: ID,
-  ) {
-    master.metadata_ref = metadata_ref;
-  }
+  // public fun set_metadata_ref<T>(
+  //   _: &AdminCap,
+  //   master: &mut Master<T>,
+  //   metadata_ref: ID,
+  // ) {
+  //   master.metadata_ref = metadata_ref;
+  // }
 
   // Anyone with access to the Master can update the title.
   public fun set_title<T>(
@@ -343,19 +352,21 @@ module recrd::master {
     master: &mut Master<T>,
     sale_status: u8,
   ) {
+    assert!(sale_status == ON_SALE || sale_status == SUSPENDED, EInvalidSaleStatus);
     master.sale_status = sale_status;
   }
 
   // ~~~ Metadata ~~~
 
+  // @TODO: probbaly should be removed, the master ref should always remain the same.
   // Admin can update the master ID for a Metadata object.
-  public fun set_master_id<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    master_id: ID,
-  ) {
-    metadata.master_id = master_id;
-  }
+  // public fun set_master_id<T>(
+  //   _: &AdminCap,
+  //   metadata: &mut Metadata<T>,
+  //   master_id: ID,
+  // ) {
+  //   metadata.master_id = master_id;
+  // }
 
   // Admin can update the description for a Metadata object.
   public fun set_description<T>(
@@ -366,13 +377,34 @@ module recrd::master {
     metadata.description = description;
   }
 
-  // Admin can update the hashtags for a Metadata object.
+  // Admin can overwrite the hashtags for a Metadata object.
+  // This will replace the existing hashtags.
   public fun set_hashtags<T>(
     _: &AdminCap,
     metadata: &mut Metadata<T>,
     hashtags: vector<String>,
   ) {
     metadata.hashtags = hashtags;
+  }
+
+  // Admin can add a hashtag to the Metadata object.
+  public fun add_hashtag<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    hashtag: String,
+  ) {
+    vector::push_back(&mut metadata.hashtags, hashtag);
+  }
+
+  // Admin can remove a single hashtag from the Metadata object.
+  public fun remove_hashtag<T>(
+    _: &AdminCap,
+    metadata: &mut Metadata<T>,
+    hashtag: String,
+  ) {
+    let (exists, index) = vector::index_of(&metadata.hashtags, &hashtag);
+    assert!(exists, EHashtagDoesNotExist);
+    vector::remove(&mut metadata.hashtags, index);
   }
 
   // Admin can update the creator profile ID for a Metadata object.
@@ -411,6 +443,7 @@ module recrd::master {
     metadata.master_metadata_origin = master_metadata_origin;
   }
 
+  // @TODO: Can expressions reduce? If not, should assert that the new value is greater than the current value.
   // Admin can update the expressions for a Metadata object.
   public fun set_expressions<T>(
     _: &AdminCap,
@@ -426,6 +459,7 @@ module recrd::master {
     metadata: &mut Metadata<T>,
     revenue_total: u64,
   ) {
+    assert!(revenue_total > metadata.revenue_total, EInvalidNewRevenueTotal);
     metadata.revenue_total = revenue_total;
   }
 
@@ -444,6 +478,7 @@ module recrd::master {
     metadata: &mut Metadata<T>,
     revenue_paid: u64,
   ) {
+    assert!(revenue_paid > metadata.revenue_paid, EInvalidNewRevenuePaid);
     metadata.revenue_paid = revenue_paid;
   }
 
@@ -456,4 +491,9 @@ module recrd::master {
     metadata.revenue_pending = revenue_pending;
   }
 
+  // === Test only ===
+  #[test_only]
+  public fun init_for_testing(ctx: &mut TxContext) {
+    init(MASTER {}, ctx);
+  }
 }
