@@ -33,6 +33,7 @@ module recrd::receipt {
         transfer::transfer(receipt, addr);
     }
 
+    // @TODO: Maybe we shouldn't allow unrestricted burning, even though it would not be beneficial for anyone to do it.
     public fun burn(receipt: Receipt): (ID, address) {
         // deconstruct and burn receipt
         let Receipt { id, master_id, user_profile } = receipt;
