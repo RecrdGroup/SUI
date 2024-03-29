@@ -8,10 +8,6 @@ module recrd::receipt {
     // === Friends ===
     friend recrd::profile;
 
-    // === Errors ===
-
-    // === Constants ===
-
     // === Structs ===
     struct Receipt has key {
         id: UID,
@@ -19,20 +15,21 @@ module recrd::receipt {
         user_profile: address,
     }
 
-    public fun new(
-        _: &AdminCap,
-        master_id: ID,
-        addr: address,
-        ctx: &mut TxContext
-    ) {
-        let receipt = Receipt {
+    /// Users who buy a `Master<T>` object will receive a receipt as proof of purchase sent
+    /// to their profile. The receipt contains the `master_id` and `user_profile` of the purchase.
+    /// We include the `master_id` to allow the user to move the `Master<T>` object to another profile.
+    /// The `user_profile` is the Profile address of the user who made the purchase.
+    /// We include the `user_profile` so that `Master<T>` is transferred to the correct profile.
+    public fun new( _: &AdminCap, master_id: ID, profile: address, ctx: &mut TxContext) {
+        transfer::transfer(Receipt {
             id: object::new(ctx),
             master_id,
-            user_profile: addr,
-        };
-        transfer::transfer(receipt, addr);
+            user_profile: profile,
+        }, profile);
     }
 
+    /// Receipt is burned to get the `master_id` and `user_profile` of the purchase.
+    /// The `master_id` is returned to the sender to be used in the next moveCall of the PTB.
     public fun burn(receipt: Receipt): (ID, address) {
         // deconstruct and burn receipt
         let Receipt { id, master_id, user_profile } = receipt;
@@ -40,6 +37,7 @@ module recrd::receipt {
        (master_id, user_profile)
     }
 
+    /// Sender receives a receipt after the purchase resolves successfully for both parties.
     public(friend) fun receive(profile_id: &mut UID, receipt: Receiving<Receipt>): Receipt {
         transfer::receive(profile_id, receipt)
     }
