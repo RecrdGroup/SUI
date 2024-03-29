@@ -49,8 +49,11 @@ module recrd::master {
     metadata_ref: ID,
     // title of master (needed for display)
     title: String,
-    // URL for master video or audio (needed for display)
+    // URL for master video or audio cover (needed for display)
     image_url: String,
+    // Media file URL for master video or audio
+    media_url: String,
+    // sale status of master
     sale_status: u8,
   }
 
@@ -60,8 +63,14 @@ module recrd::master {
     id: UID,
     // points to Master<T> proof of ownership
     master_id: ID,
+    // title of master
+    title: String,
     // description of master
     description: String,
+    // URL for master video or audio cover
+    image_url: String,
+    // Media file URL for master video or audio
+    media_url: String,
     // hashtags for master
     hashtags: vector<String>,
     // original creator profile ID
@@ -73,7 +82,7 @@ module recrd::master {
     // origin master metadata object ID
     master_metadata_origin: Option<ID>,
     // number of expressions
-    expressions: u64, // TODO: clarify the purpose of this field
+    expressions: u64,
     // revenue total (synced by RECRD)
     revenue_total: u64,
     // revenue available to be paid to creator (synced by RECRD)
@@ -94,36 +103,50 @@ module recrd::master {
     // Create the display for `Master<T>`
     let master_keys = vector[
       utf8(b"name"),
-      utf8(b"image_url"),
-      utf8(b"metadata_ref"),
-      utf8(b"description"),
+      utf8(b"Image URL"),
+      utf8(b"Media URL"),
+      utf8(b"Metadata Ref"),
     ];
 
     let master_values = vector[
       utf8(b"{title}"),
       utf8(b"{image_url}"),
+      utf8(b"{media_url}"),
       utf8(b"{metadata_ref}"),
-      utf8(b"Recrd is a best in class social media application empowering creators."),
     ];
 
-    let master_display = display::new_with_fields<Master<Video>>(
+    // Create and populate display for `Master<Video>`
+    let master_video_display = display::new_with_fields<Master<Video>>(
       &publisher, master_keys, master_values, ctx
     );
 
-    display::update_version(&mut master_display);
+    display::update_version(&mut master_video_display);
+
+    // Create and populate display for `Master<Sound>`
+    let master_sound_display = display::new_with_fields<Master<Sound>>(
+      &publisher, master_keys, master_values, ctx
+    );
+
+    display::update_version(&mut master_sound_display);
 
     // Create the display for `Metadata<T>`
     let metadata_keys = vector[
-      utf8(b"description"),
-      utf8(b"hashtags"),
-      utf8(b"creator_profile_id"),
-      utf8(b"master_metadata_parent"),
-      utf8(b"master_metadata_origin"),
-      utf8(b"expressions"),
+      utf8(b"Title"),
+      utf8(b"Description"),
+      utf8(b"Image URL"),
+      utf8(b"Media URL"),
+      utf8(b"Hashtags"),
+      utf8(b"Creator"),
+      utf8(b"Parent"),
+      utf8(b"Origin"),
+      utf8(b"Expressions"),
     ];
 
     let metadata_values = vector[
+      utf8(b"{title}"),
       utf8(b"{description}"),
+      utf8(b"{image_url}"),
+      utf8(b"{media_url}"),
       utf8(b"{hashtags}"),
       utf8(b"{creator_profile_id}"),
       utf8(b"{master_metadata_parent}"),
@@ -131,28 +154,42 @@ module recrd::master {
       utf8(b"{expressions}"),
     ];
 
-    let metadata_display = display::new_with_fields<Metadata<Video>>(
+    // Create and populate display for `Metadata<Video>`
+    let metadata_video_display = display::new_with_fields<Metadata<Video>>(
       &publisher, metadata_keys, metadata_values, ctx
     );
 
-    display::update_version(&mut metadata_display);
+    display::update_version(&mut metadata_video_display);
+
+    // Create and populate display for `Metadata<Sound>`
+    let metadata_sound_display = display::new_with_fields<Metadata<Sound>>(
+      &publisher, metadata_keys, metadata_values, ctx
+    );
+
+    display::update_version(&mut metadata_sound_display);
 
     transfer::public_transfer(publisher, tx_context::sender(ctx));
-    transfer::public_transfer(master_display, tx_context::sender(ctx));
-    transfer::public_transfer(metadata_display, tx_context::sender(ctx));
+    transfer::public_transfer(master_video_display, tx_context::sender(ctx));
+    transfer::public_transfer(master_sound_display, tx_context::sender(ctx));
+    transfer::public_transfer(metadata_video_display, tx_context::sender(ctx));
+    transfer::public_transfer(metadata_sound_display, tx_context::sender(ctx));
   }
 
   // === Public Functions ===
 
   // === Admin Functions ===
 
-  // Mints new Master and Metadata objects and returns the proof of ownership 
-  // for the `Master<T>`.
+  /// Mints new `Master<T>` and `Metadata<T>` objects and returns `Master<T>`. 
+  /// `Master<T>` is proof of ownership for the master by `creator_profile_id`
+  /// and `Metadata<T>` holds all master-related metadata.
+  /// Use `transfer::public_transfer(master, creator_profile_id)` to transfer
+  /// the `Master<T>` proof of ownership to the creator.
   public fun new<T: drop>(
     _: &AdminCap,
     title: String,
-    image_url: String,
     description: String,
+    image_url: String,
+    media_url: String,
     hashtags: vector<String>,
     creator_profile_id: ID,
     royalty_percentage_bp: u16,
@@ -173,7 +210,10 @@ module recrd::master {
     let metadata = Metadata<T> {
       id: metadata_uid,
       master_id,
+      title,
       description,
+      image_url,
+      media_url,
       hashtags,
       creator_profile_id,
       royalty_percentage_bp,
@@ -197,29 +237,34 @@ module recrd::master {
       metadata_ref: metadata_id,
       title,
       image_url,
+      media_url,
       sale_status,
     }
   }
 
-  // Burn the `Master<T>` proof of ownership. 
+  /// Burn the `Master<T>` proof of ownership and return the reference ID of 
+  /// the `Metadata<T>` object that was associated with the `Master<T>`.
   public fun admin_burn_master<T: drop>(
     _: &AdminCap,
     master: Master<T>,
-  ) {
+  ): ID {
     // Deconstruct the `Master<T>` object. 
     let Master<T> {
       id, 
-      metadata_ref: _, 
+      metadata_ref, 
       title: _,
       image_url: _,
+      media_url: _,
       sale_status: _,
     } = master;
 
     // Delete the `Master<T>` object and its UID.
     object::delete(id);
+
+    metadata_ref
   }
   
-  // Burn the `Metadata<T>` object.
+  /// Burn the `Metadata<T>` object.
   public fun admin_burn_metadata<T: drop>(
     _: &AdminCap,
     metadata: Metadata<T>,
@@ -228,7 +273,10 @@ module recrd::master {
     let Metadata<T> {
       id, 
       master_id: _, 
+      title: _,
       description: _,
+      image_url: _,
+      media_url: _,
       hashtags: _,
       creator_profile_id: _,
       royalty_percentage_bp: _,
