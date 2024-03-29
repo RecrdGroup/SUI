@@ -102,7 +102,7 @@ module recrd::master {
 
     // Create the display for `Master<T>`
     let master_keys = vector[
-      utf8(b"name"),
+      utf8(b"Name"),
       utf8(b"Image URL"),
       utf8(b"Media URL"),
       utf8(b"Metadata Ref"),
@@ -309,57 +309,73 @@ module recrd::master {
     master.image_url
   }
 
+  public fun media_url<T>(master: &Master<T>): String {
+    master.media_url
+  }
+
   public fun sale_status<T>(master: &Master<T>): u8 {
     master.sale_status
   }
 
   // ~~~ Metadata ~~~
 
-  public fun master_id<T>(metadata: &Metadata<T>): ID {
+  public fun meta_master_id<T>(metadata: &Metadata<T>): ID {
     metadata.master_id
   }
 
-  public fun description<T>(metadata: &Metadata<T>): String {
+  public fun meta_title<T>(metadata: &Metadata<T>): String {
+    metadata.title
+  }
+
+  public fun meta_description<T>(metadata: &Metadata<T>): String {
     metadata.description
   }
 
-  public fun hashtags<T>(metadata: &Metadata<T>): vector<String> {
+  public fun meta_image_url<T>(metadata: &Metadata<T>): String {
+    metadata.image_url
+  }
+
+   public fun meta_media_url<T>(metadata: &Metadata<T>): String {
+    metadata.media_url
+  }
+
+  public fun meta_hashtags<T>(metadata: &Metadata<T>): vector<String> {
     metadata.hashtags
   }
 
-  public fun creator_profile_id<T>(metadata: &Metadata<T>): ID {
+  public fun meta_creator_profile_id<T>(metadata: &Metadata<T>): ID {
     metadata.creator_profile_id
   }
 
-  public fun royalty_percentage_bp<T>(metadata: &Metadata<T>): u16 {
+  public fun meta_royalty_percentage_bp<T>(metadata: &Metadata<T>): u16 {
     metadata.royalty_percentage_bp
   }
 
-  public fun master_metadata_parent<T>(metadata: &Metadata<T>): Option<ID> {
+  public fun meta_parent<T>(metadata: &Metadata<T>): Option<ID> {
     metadata.master_metadata_parent
   }
 
-  public fun master_metadata_origin<T>(metadata: &Metadata<T>): Option<ID> {
+  public fun meta_origin<T>(metadata: &Metadata<T>): Option<ID> {
     metadata.master_metadata_origin
   }
 
-  public fun expressions<T>(metadata: &Metadata<T>): u64 {
+  public fun meta_expressions<T>(metadata: &Metadata<T>): u64 {
     metadata.expressions
   }
 
-  public fun revenue_total<T>(metadata: &Metadata<T>): u64 {
+  public fun meta_revenue_total<T>(metadata: &Metadata<T>): u64 {
     metadata.revenue_total
   }
 
-  public fun revenue_available<T>(metadata: &Metadata<T>): u64 {
+  public fun meta_revenue_available<T>(metadata: &Metadata<T>): u64 {
     metadata.revenue_available
   }
 
-  public fun revenue_paid<T>(metadata: &Metadata<T>): u64 {
+  public fun meta_revenue_paid<T>(metadata: &Metadata<T>): u64 {
     metadata.revenue_paid
   }
 
-  public fun revenue_pending<T>(metadata: &Metadata<T>): u64 {
+  public fun meta_revenue_pending<T>(metadata: &Metadata<T>): u64 {
     metadata.revenue_pending
   }
 
@@ -378,23 +394,32 @@ module recrd::master {
   //   master.metadata_ref = metadata_ref;
   // }
 
-  // Anyone with access to the Master can update the title.
-  public fun set_title<T>(
+
+  /// Sync Master title from Metadata object.
+  public fun sync_title<T>(
     master: &mut Master<T>,
-    title: String,
+    metadata: &Metadata<T>,
   ) {
-    master.title = title;
+    master.title = metadata.title;
   }
 
-  // Anyone with access to the Master can update the image URL.
-  public fun set_image_url<T>(
+  /// Sync Master image URL from Metadata object.
+  public fun sync_image_url<T>(
     master: &mut Master<T>,
-    image_url: String,
+    metadata: &Metadata<T>,
   ) {
-    master.image_url = image_url;
+    master.image_url = metadata.image_url;
   }
 
-  // Admin can update the sale status for a Master object.
+  /// Sync Master media URL from Metadata object.
+  public fun sync_media_url<T>(
+    master: &mut Master<T>,
+    metadata: &Metadata<T>,
+  ) {
+    master.media_url = metadata.media_url;
+  }
+
+  /// Admin can update the sale status for a Master object.
   public fun set_sale_status<T>(
     _: &AdminCap,
     master: &mut Master<T>,
@@ -406,135 +431,114 @@ module recrd::master {
 
   // ~~~ Metadata ~~~
 
-  // @TODO: probbaly should be removed, the master ref should always remain the same.
-  // Admin can update the master ID for a Metadata object.
-  // public fun set_master_id<T>(
-  //   _: &AdminCap,
-  //   metadata: &mut Metadata<T>,
-  //   master_id: ID,
-  // ) {
-  //   metadata.master_id = master_id;
-  // }
+  /// Admin can update the title for a Metadata object.
+  public fun set_title<T>(_: &AdminCap, metadata: &mut Metadata<T>, title: String) {
+    metadata.title = title;
+  }
 
-  // Admin can update the description for a Metadata object.
+  /// Admin can update the description for a Metadata object.
   public fun set_description<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    description: String,
+    _: &AdminCap, metadata: &mut Metadata<T>, description: String,
   ) {
     metadata.description = description;
   }
 
-  // Admin can overwrite the hashtags for a Metadata object.
-  // This will replace the existing hashtags.
+  /// Admin can update the image URL for a Metadata object.
+  public fun set_image_url<T>(
+    _: &AdminCap, metadata: &mut Metadata<T>, image_url: String,
+  ) {
+    metadata.image_url = image_url;
+  }
+  
+  /// Admin can update the media URL for a Metadata object.
+  public fun set_media_url<T>(
+    _: &AdminCap, metadata: &mut Metadata<T>, media_url: String,
+  ) {
+    metadata.media_url = media_url;
+  }
+
+  /// Admin can overwrite the hashtags for a Metadata object.
+  /// This will replace the existing hashtags.
   public fun set_hashtags<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    hashtags: vector<String>,
+    _: &AdminCap, metadata: &mut Metadata<T>, hashtags: vector<String>,
   ) {
     metadata.hashtags = hashtags;
   }
 
-  // Admin can add a hashtag to the Metadata object.
+  /// Admin can add a hashtag to the Metadata object.
   public fun add_hashtag<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    hashtag: String,
+    _: &AdminCap, metadata: &mut Metadata<T>, hashtag: String,
   ) {
     vector::push_back(&mut metadata.hashtags, hashtag);
   }
 
-  // Admin can remove a single hashtag from the Metadata object.
+  /// Admin can remove a single hashtag from the Metadata object.
   public fun remove_hashtag<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    hashtag: String,
+    _: &AdminCap, metadata: &mut Metadata<T>, hashtag: String,
   ) {
     let (exists, index) = vector::index_of(&metadata.hashtags, &hashtag);
     assert!(exists, EHashtagDoesNotExist);
     vector::remove(&mut metadata.hashtags, index);
   }
 
-  // Admin can update the creator profile ID for a Metadata object.
-  public fun set_creator_profile_id<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    creator_profile_id: ID,
-  ) {
-    metadata.creator_profile_id = creator_profile_id;
-  }
-
-  // Admin can update the royalty percentage BP for a Metadata object.
+  /// Admin can update the royalty percentage BP for a Metadata object.
   public fun set_royalty_percentage_bp<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    royalty_percentage_bp: u16,
+    _: &AdminCap, metadata: &mut Metadata<T>, royalty_percentage_bp: u16,
   ) {
     metadata.royalty_percentage_bp = royalty_percentage_bp;
   }
 
-  // Admin can update the master metadata parent for a Metadata object.
-  public fun set_master_metadata_parent<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    master_metadata_parent: Option<ID>,
+  /// Admin can update the master metadata parent for a Metadata object.
+  public fun set_metadata_parent<T>(
+    _: &AdminCap, metadata: &mut Metadata<T>, metadata_parent: Option<ID>,
   ) {
-    metadata.master_metadata_parent = master_metadata_parent;
+    metadata.master_metadata_parent = metadata_parent;
   }
 
-  // Admin can update the master metadata origin for a Metadata object.
-  public fun set_master_metadata_origin<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    master_metadata_origin: Option<ID>,
+  /// Admin can update the master metadata origin for a Metadata object.
+  public fun set_metadata_origin<T>(
+    _: &AdminCap, metadata: &mut Metadata<T>, metadata_origin: Option<ID>,
   ) {
-    metadata.master_metadata_origin = master_metadata_origin;
+    metadata.master_metadata_origin = metadata_origin;
   }
 
-  // @TODO: Can expressions reduce? If not, should assert that the new value is greater than the current value.
-  // Admin can update the expressions for a Metadata object.
+  /// Admin can update the expressions for a Metadata object.
   public fun set_expressions<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    expressions: u64,
+    _: &AdminCap, metadata: &mut Metadata<T>, expressions: u64,
   ) {
     metadata.expressions = expressions;
   }
 
-  // Admin can update the revenue total for a Metadata object.
+  /// Admin can update the revenue total for a Metadata object.
+  /// The new revenue total must be greater than the existing revenue total.
+  /// This is to ensure that the revenue total is always increasing.
   public fun set_revenue_total<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    revenue_total: u64,
+    _: &AdminCap, metadata: &mut Metadata<T>, revenue_total: u64,
   ) {
     assert!(revenue_total > metadata.revenue_total, EInvalidNewRevenueTotal);
     metadata.revenue_total = revenue_total;
   }
 
-  // Admin can update the revenue available for a Metadata object.
+  /// Admin can update the revenue available for a Metadata object.
   public fun set_revenue_available<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    revenue_available: u64,
+    _: &AdminCap, metadata: &mut Metadata<T>, revenue_available: u64,
   ) {
     metadata.revenue_available = revenue_available;
   }
 
-  // Admin can update the revenue paid for a Metadata object.
+  /// Admin can update the revenue paid for a Metadata object.
+  /// The new revenue paid must be greater than the existing revenue paid.
+  /// This is to ensure that the revenue paid is always increasing.
   public fun set_revenue_paid<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    revenue_paid: u64,
+    _: &AdminCap, metadata: &mut Metadata<T>, revenue_paid: u64,
   ) {
     assert!(revenue_paid > metadata.revenue_paid, EInvalidNewRevenuePaid);
     metadata.revenue_paid = revenue_paid;
   }
 
-  // Admin can update the revenue pending for a Metadata object.
+  /// Admin can update the revenue pending for a Metadata object.
   public fun set_revenue_pending<T>(
-    _: &AdminCap,
-    metadata: &mut Metadata<T>,
-    revenue_pending: u64,
+    _: &AdminCap, metadata: &mut Metadata<T>, revenue_pending: u64,
   ) {
     metadata.revenue_pending = revenue_pending;
   }

@@ -1,6 +1,9 @@
+// Copyright (c) Mysten Labs, Inc.
+// SPDX-License-Identifier: Apache-2.0
 
 #[test_only]
 module recrd::master_test {
+    // === Imports ===
     use std::string::{String, utf8};
     use std::option::{Self, Option};
 
@@ -10,22 +13,40 @@ module recrd::master_test {
     use sui::vec_map::{Self};
 
     use recrd::core::{Self};
-    use recrd::master::{Self, Master, Video, Sound, Metadata, EHashtagDoesNotExist, EInvalidNewRevenueTotal, EInvalidNewRevenuePaid, EInvalidSaleStatus};
+    use recrd::master::{
+        Self, 
+        Master, 
+        Video, 
+        Sound, 
+        Metadata, 
+        EHashtagDoesNotExist, 
+        EInvalidNewRevenueTotal, 
+        EInvalidNewRevenuePaid, 
+        EInvalidSaleStatus
+    };
 
+    // === Constants ===
     const ORIGIN_REF: address = @0xFACE;
     const PARENT_REF: address = @0xBEEF;
     const ADMIN: address = @0xDECAF;
     const USER_PROFILE: address = @0xC0FFEE;
+    const USER_ROYALTY_BP: u16 = 1_000;
     const ON_SALE: u8 = 1;
     const SUSPENDED: u8 = 2;
 
+    // === Errors ===
     const EInvalidMasterValue: u64 = 1001;
     const EInvalidMetadataValue: u64 = 1002;
     const EInvalidDisplayValue: u64 = 1003;
 
     // === Helpers ===
 
-    public fun mint_master<T: drop>(scenario: &mut Scenario, title: String, origin: Option<ID>, parent: Option<ID>): Master<T> {
+    public fun mint_master<T: drop>(
+        scenario: &mut Scenario, 
+        title: String, 
+        parent: Option<ID>,
+        origin: Option<ID>, 
+    ): Master<T> {
         ts::next_tx(scenario, ADMIN);
         let ctx = ts::ctx(scenario);
         let admin_cap = core::mint_for_testing(ctx);
@@ -33,13 +54,14 @@ module recrd::master_test {
         let master = master::new<T>(
             &admin_cap,
             title,
-            utf8(b"https://test.com/image"),
             utf8(b"Test Description"),
+            utf8(b"https://test.com/image"),
+            utf8(b"https://test.com/media"),
             vector[utf8(b"test"), utf8(b"master")],
             object::id_from_address(USER_PROFILE),
-            100,
-            origin,
+            USER_ROYALTY_BP,
             parent,
+            origin,
             ON_SALE,
             ctx
         );
@@ -49,7 +71,7 @@ module recrd::master_test {
         master
     }
 
-    // ======
+    // === Tests ===
 
     #[test]
     public fun initializes() {
@@ -59,21 +81,21 @@ module recrd::master_test {
 
         master::init_for_testing(ctx);
 
+        // Validate Display fields for Video Master
         ts::next_tx(test, ADMIN);
         {
-
             let master_keys = vector[
-                utf8(b"name"),
-                utf8(b"image_url"),
-                utf8(b"metadata_ref"),
-                utf8(b"description"),
+                utf8(b"Name"),
+                utf8(b"Image URL"),
+                utf8(b"Media URL"),
+                utf8(b"Metadata Ref"),
             ];
 
             let master_values = vector[
                 utf8(b"{title}"),
                 utf8(b"{image_url}"),
+                utf8(b"{media_url}"),
                 utf8(b"{metadata_ref}"),
-                utf8(b"Recrd is a best in class social media application empowering creators."),
             ];
 
             let master_display = ts::take_from_sender<Display<Master<Video>>>(test);
@@ -85,19 +107,26 @@ module recrd::master_test {
             ts::return_to_sender(test, master_display);
         };
 
+        // Validate Display fields for Video Metadata
         ts::next_tx(test, ADMIN);
         {
             let metadata_keys = vector[
-                utf8(b"description"),
-                utf8(b"hashtags"),
-                utf8(b"creator_profile_id"),
-                utf8(b"master_metadata_parent"),
-                utf8(b"master_metadata_origin"),
-                utf8(b"expressions"),
+                utf8(b"Title"),
+                utf8(b"Description"),
+                utf8(b"Image URL"),
+                utf8(b"Media URL"),
+                utf8(b"Hashtags"),
+                utf8(b"Creator"),
+                utf8(b"Parent"),
+                utf8(b"Origin"),
+                utf8(b"Expressions"),
             ];
 
             let metadata_values = vector[
+                utf8(b"{title}"),
                 utf8(b"{description}"),
+                utf8(b"{image_url}"),
+                utf8(b"{media_url}"),
                 utf8(b"{hashtags}"),
                 utf8(b"{creator_profile_id}"),
                 utf8(b"{master_metadata_parent}"),
@@ -113,7 +142,6 @@ module recrd::master_test {
 
             ts::return_to_sender(test, metadata_display);
         };
-
 
         ts::end(scenario);
     }
@@ -137,24 +165,81 @@ module recrd::master_test {
             let metadata = ts::take_shared<Metadata<Video>>(test);
 
             // Validate Master fields
-            assert!(master::metadata_ref(&master) == object::id(&metadata), EInvalidMasterValue);
-            assert!(master::title(&master) == utf8(b"Test Video Master"), EInvalidMasterValue);
-            assert!(master::image_url(&master) == utf8(b"https://test.com/image"), EInvalidMasterValue);
-            assert!(master::sale_status(&master) == ON_SALE, EInvalidMasterValue);
+            assert!(
+                master::metadata_ref(&master) == object::id(&metadata), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::title(&master) == utf8(b"Test Video Master"), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::image_url(&master) == utf8(b"https://test.com/image"), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::media_url(&master) == utf8(b"https://test.com/media"), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::sale_status(&master) == ON_SALE, 
+                EInvalidMasterValue
+            );
 
             // Validate Metadata fields
-            assert!(master::master_id(&metadata) == object::id(&master), EInvalidMetadataValue);
-            assert!(master::description(&metadata) == utf8(b"Test Description"), EInvalidMetadataValue);
-            assert!(master::hashtags(&metadata) == vector[utf8(b"test"), utf8(b"master")], EInvalidMetadataValue);
-            assert!(master::creator_profile_id(&metadata) == object::id_from_address(USER_PROFILE), EInvalidMetadataValue);
-            assert!(master::royalty_percentage_bp(&metadata) == 100, EInvalidMetadataValue);
-            assert!(master::master_metadata_parent(&metadata) == option::some<ID>(object::id_from_address(PARENT_REF)), EInvalidMetadataValue);
-            assert!(master::master_metadata_origin(&metadata) == option::some<ID>(object::id_from_address(ORIGIN_REF)), EInvalidMetadataValue);
-            assert!(master::expressions(&metadata) == 0, EInvalidMetadataValue);
-            assert!(master::revenue_total(&metadata) == 0, EInvalidMetadataValue);
-            assert!(master::revenue_available(&metadata) == 0, EInvalidMetadataValue);
-            assert!(master::revenue_paid(&metadata) == 0, EInvalidMetadataValue);
-            assert!(master::revenue_pending(&metadata) == 0, EInvalidMetadataValue);
+            assert!(
+                master::meta_master_id(&metadata) == object::id(&master), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_title(&metadata) == utf8(b"Test Video Master"), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_description(&metadata) == utf8(b"Test Description"), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_hashtags(&metadata) == vector[utf8(b"test"), utf8(b"master")], 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_creator_profile_id(&metadata) == object::id_from_address(USER_PROFILE), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_royalty_percentage_bp(&metadata) == USER_ROYALTY_BP, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_parent(&metadata) == option::some<ID>(
+                    object::id_from_address(PARENT_REF)
+                ), EInvalidMetadataValue
+            );
+            assert!(master::meta_origin(&metadata) == option::some<ID>(
+                    object::id_from_address(ORIGIN_REF)
+                ), EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_expressions(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_total(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_available(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_paid(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_pending(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
 
             ts::return_shared(metadata);
         };
@@ -174,7 +259,7 @@ module recrd::master_test {
         let master = mint_master<Sound>(
             test,
             utf8(b"Test Sound Master"),
-            option::none<ID>(),
+            option::some<ID>(object::id_from_address(PARENT_REF)),
             option::some<ID>(object::id_from_address(ORIGIN_REF))
         );
 
@@ -184,24 +269,81 @@ module recrd::master_test {
             let metadata = ts::take_shared<Metadata<Sound>>(test);
 
             // Validate Master fields
-            assert!(master::metadata_ref(&master) == object::id(&metadata), EInvalidMasterValue);
-            assert!(master::title(&master) == utf8(b"Test Sound Master"), EInvalidMasterValue);
-            assert!(master::image_url(&master) == utf8(b"https://test.com/image"), EInvalidMasterValue);
-            assert!(master::sale_status(&master) == ON_SALE, EInvalidMasterValue);
+            assert!(
+                master::metadata_ref(&master) == object::id(&metadata), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::title(&master) == utf8(b"Test Sound Master"), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::image_url(&master) == utf8(b"https://test.com/image"), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::media_url(&master) == utf8(b"https://test.com/media"), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::sale_status(&master) == ON_SALE, 
+                EInvalidMasterValue
+            );
 
             // Validate Metadata fields
-            assert!(master::master_id(&metadata) == object::id(&master), EInvalidMetadataValue);
-            assert!(master::description(&metadata) == utf8(b"Test Description"), EInvalidMetadataValue);
-            assert!(master::hashtags(&metadata) == vector[utf8(b"test"), utf8(b"master")], EInvalidMetadataValue);
-            assert!(master::creator_profile_id(&metadata) == object::id_from_address(USER_PROFILE), EInvalidMetadataValue);
-            assert!(master::royalty_percentage_bp(&metadata) == 100, EInvalidMetadataValue);
-            assert!(master::master_metadata_parent(&metadata) == option::none<ID>(), EInvalidMetadataValue);
-            assert!(master::master_metadata_origin(&metadata) == option::some<ID>(object::id_from_address(ORIGIN_REF)), EInvalidMetadataValue);
-            assert!(master::expressions(&metadata) == 0, EInvalidMetadataValue);
-            assert!(master::revenue_total(&metadata) == 0, EInvalidMetadataValue);
-            assert!(master::revenue_available(&metadata) == 0, EInvalidMetadataValue);
-            assert!(master::revenue_paid(&metadata) == 0, EInvalidMetadataValue);
-            assert!(master::revenue_pending(&metadata) == 0, EInvalidMetadataValue);
+            assert!(
+                master::meta_master_id(&metadata) == object::id(&master), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_title(&metadata) == utf8(b"Test Sound Master"), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_description(&metadata) == utf8(b"Test Description"), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_hashtags(&metadata) == vector[utf8(b"test"), utf8(b"master")], 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_creator_profile_id(&metadata) == object::id_from_address(USER_PROFILE), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_royalty_percentage_bp(&metadata) == USER_ROYALTY_BP, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_parent(&metadata) == option::some<ID>(
+                    object::id_from_address(PARENT_REF)
+                ), EInvalidMetadataValue
+            );
+            assert!(master::meta_origin(&metadata) == option::some<ID>(
+                    object::id_from_address(ORIGIN_REF)
+                ), EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_expressions(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_total(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_available(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_paid(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_pending(&metadata) == 0, 
+                EInvalidMetadataValue
+            );
 
             ts::return_shared(metadata);
         };
@@ -221,11 +363,12 @@ module recrd::master_test {
         let master = master::new<Video>(
             &admin_cap,
             utf8(b"Test Video Master"),
-            utf8(b"https://test.com/image"),
             utf8(b"Test Description"),
+            utf8(b"https://test.com/image"),
+            utf8(b"https://test.com/media"),
             vector[utf8(b"test"), utf8(b"master")],
             object::id(&admin_cap),
-            100,
+            USER_ROYALTY_BP,
             option::some<ID>(object::id_from_address(PARENT_REF)),
             option::some<ID>(object::id_from_address(ORIGIN_REF)),
             ON_SALE,
@@ -257,20 +400,36 @@ module recrd::master_test {
             option::some<ID>(object::id_from_address(ORIGIN_REF))
         );
 
+        ts::next_tx(test, ADMIN);
+        let metadata = ts::take_shared<Metadata<Video>>(test);
+
         // Update Master 
         ts::next_tx(test, ADMIN);
         {
-            master::set_title(&mut master, utf8(b"Updated Title"));
-            master::set_image_url(&mut master, utf8(b"https://test.com/updated-image"));
+            master::sync_title(&mut master, &metadata);
+            master::sync_image_url(&mut master, &metadata);
             master::set_sale_status(&admin_cap, &mut master, SUSPENDED);
         };
 
         // Validate Updated Master fields
         ts::next_tx(test, ADMIN);
         {
-            assert!(master::title(&master) == utf8(b"Updated Title"), EInvalidMasterValue);
-            assert!(master::image_url(&master) == utf8(b"https://test.com/updated-image"), EInvalidMasterValue);
-            assert!(master::sale_status(&master) == SUSPENDED, EInvalidMasterValue);
+            assert!(
+                master::title(&master) == master::meta_title(&metadata), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::image_url(&master) == master::meta_image_url(&metadata), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::media_url(&master) == master::meta_media_url(&metadata), 
+                EInvalidMasterValue
+            );
+            assert!(
+                master::sale_status(&master) == SUSPENDED, 
+                EInvalidMasterValue
+            );
         };
 
         // Update sale status to ON_SALE
@@ -285,8 +444,9 @@ module recrd::master_test {
             assert!(master::sale_status(&master) == ON_SALE, EInvalidMasterValue);
         };
 
-        master::admin_burn_master(&admin_cap, master);
+        let _ = master::admin_burn_master(&admin_cap, master);
         core::burn_for_testing(admin_cap);
+        ts::return_shared(metadata);
         ts::end(scenario);
     }
 
@@ -308,13 +468,15 @@ module recrd::master_test {
         ts::next_tx(test, ADMIN);
         {
             let metadata = ts::take_shared<Metadata<Video>>(test);
-
+            
+            master::set_title(&admin_cap, &mut metadata, utf8(b"Updated Title"));
             master::set_description(&admin_cap, &mut metadata, utf8(b"Updated Description"));
             master::set_hashtags(&admin_cap, &mut metadata, vector[utf8(b"updated"), utf8(b"master")]);
-            master::set_creator_profile_id(&admin_cap, &mut metadata, object::id_from_address(ADMIN));
+            master::set_image_url(&admin_cap, &mut metadata, utf8(b"image-url.com"));
+            master::set_media_url(&admin_cap, &mut metadata, utf8(b"media-url.com"));
             master::set_royalty_percentage_bp(&admin_cap, &mut metadata, 200);
-            master::set_master_metadata_parent(&admin_cap, &mut metadata, option::none<ID>());
-            master::set_master_metadata_origin(&admin_cap, &mut metadata, option::none<ID>());
+            master::set_metadata_parent(&admin_cap, &mut metadata, option::none<ID>());
+            master::set_metadata_origin(&admin_cap, &mut metadata, option::none<ID>());
             master::set_expressions(&admin_cap, &mut metadata, 1);
             master::set_revenue_total(&admin_cap, &mut metadata, 100);
             master::set_revenue_available(&admin_cap, &mut metadata, 50);
@@ -329,17 +491,58 @@ module recrd::master_test {
         {
             let metadata = ts::take_shared<Metadata<Video>>(test);
 
-            assert!(master::description(&metadata) == utf8(b"Updated Description"), EInvalidMetadataValue);
-            assert!(master::hashtags(&metadata) == vector[utf8(b"updated"), utf8(b"master")], EInvalidMetadataValue);
-            assert!(master::creator_profile_id(&metadata) == object::id_from_address(ADMIN), EInvalidMetadataValue);
-            assert!(master::royalty_percentage_bp(&metadata) == 200, EInvalidMetadataValue);
-            assert!(master::master_metadata_parent(&metadata) == option::none<ID>(), EInvalidMetadataValue);
-            assert!(master::master_metadata_origin(&metadata) == option::none<ID>(), EInvalidMetadataValue);
-            assert!(master::expressions(&metadata) == 1, EInvalidMetadataValue);
-            assert!(master::revenue_total(&metadata) == 100,EInvalidMetadataValue);
-            assert!(master::revenue_available(&metadata) == 50, EInvalidMetadataValue);
-            assert!(master::revenue_paid(&metadata) == 25, EInvalidMetadataValue);
-            assert!(master::revenue_pending(&metadata) == 25, EInvalidMetadataValue);
+            assert!(
+                master::meta_title(&metadata) == utf8(b"Updated Title"), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_description(&metadata) == utf8(b"Updated Description"), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_image_url(&metadata) == utf8(b"image-url.com"), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_media_url(&metadata) == utf8(b"media-url.com"), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_hashtags(&metadata) == vector[utf8(b"updated"), utf8(b"master")],
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_royalty_percentage_bp(&metadata) == 200, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_parent(&metadata) == option::none<ID>(), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_origin(&metadata) == option::none<ID>(), 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_expressions(&metadata) == 1, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_total(&metadata) == 100,
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_available(&metadata) == 50, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_paid(&metadata) == 25, 
+                EInvalidMetadataValue
+            );
+            assert!(
+                master::meta_revenue_pending(&metadata) == 25, 
+                EInvalidMetadataValue
+            );
 
             ts::return_shared(metadata);
         };
@@ -377,7 +580,14 @@ module recrd::master_test {
         {
             let metadata = ts::take_shared<Metadata<Video>>(test);
 
-            assert!(master::hashtags(&metadata) == vector[utf8(b"test"), utf8(b"master"), utf8(b"new"), utf8(b"tag")], EInvalidMetadataValue);
+            assert!(
+                master::meta_hashtags(&metadata) == vector[
+                    utf8(b"test"), 
+                    utf8(b"master"), 
+                    utf8(b"new"), 
+                    utf8(b"tag")
+                ], EInvalidMetadataValue
+            );
 
             ts::return_shared(metadata);
         };
@@ -414,7 +624,10 @@ module recrd::master_test {
         {
             let metadata = ts::take_shared<Metadata<Video>>(test);
 
-            assert!(master::hashtags(&metadata) == vector[utf8(b"test")], EInvalidMetadataValue);
+            assert!(
+                master::meta_hashtags(&metadata) == vector[utf8(b"test")], 
+                EInvalidMetadataValue
+            );
 
             ts::return_shared(metadata);
         };
