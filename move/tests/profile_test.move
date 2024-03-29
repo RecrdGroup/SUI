@@ -1,7 +1,7 @@
 
 #[test_only]
 module recrd::profile_test {
-
+    // === Imports ===
     use std::string::utf8;
     use std::option;
 
@@ -14,12 +14,15 @@ module recrd::profile_test {
     use recrd::profile::{Self, Profile, EInvalidAccessOption, ENewValueShouldBeHigher, ENoEntryFound};
     use recrd::master::{Self, Master, Video};
 
+    // === Constants ===
     const USERNAME: vector<u8> = b"username";
     const USER_ID: vector<u8> = b"user_id";
     const USER_PROFILE: address = @0xC0FFEE;
+    const USER_ROYALTY_BP: u16 = 1_000;
     const ADMIN: address = @0xDECAF;
     const ON_SALE: u8 = 1;
 
+    // === Errors ===
     const EInvalidAccessRights: u64 = 1;
     const EInvalidFieldValue: u64 = 2;
     
@@ -50,11 +53,12 @@ module recrd::profile_test {
         let master = master::new<T>(
             &admin_cap,
             utf8(b"Test Master"),
-            utf8(b"https://test.com/image"),
             utf8(b"Test Description"),
+            utf8(b"https://test.com/image"),
+            utf8(b"https://test.com/media"),
             vector[utf8(b"test"), utf8(b"master")],
             object::id(&admin_cap),
-            100,
+            USER_ROYALTY_BP,
             option::none<ID>(),
             option::none<ID>(),
             ON_SALE,
@@ -66,7 +70,7 @@ module recrd::profile_test {
         master
     }
 
-    // ======
+    // === Tests ===
 
     #[test]
     public fun mints_profile() {
