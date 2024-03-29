@@ -31,9 +31,8 @@ module recrd::profile {
   const EInvalidSaleStatus: u64 = 1;
   const EInvalidAccessRights: u64 = 2;
   const EInvalidObject: u64 = 3;
-  const EInvalidBuyer: u64 = 4;
-  const EInvalidAccessOption: u64 = 5;
-  const ENoEntryFound: u64 = 6;
+  const EInvalidAccessOption: u64 = 4;
+  const ENoEntryFound: u64 = 5;
 
   // === Constants ===
 
@@ -152,23 +151,27 @@ module recrd::profile {
     transfer::public_transfer(master, profile);
   }
 
-  // TODO: to be implemented 
+  /// Buys a Master<T> object from a seller profile and transfers it to the 
+  /// buyer profile after redeeming the receipt.
   public fun buy<T: key + store>(
     seller_profile: &mut Profile,
     master: Receiving<Master<T>>,
     buyer_profile: &mut Profile,
     receipt: Receiving<Receipt>,
   ) {
-    // Needs to receive both the receipt and a master. Receipt will validate the
-    // correctness of the master to be transferred as well as provide the
-    // target profile address it should be transferred to
+    // Receive the receipt from the buyer profile
     let receipt = receipt::receive(&mut buyer_profile.id, receipt);
-    let (master_id, user_profile) = receipt::burn(receipt);
-    let master = receive_master_(seller_profile, master);
-    assert!(object::id(&master) == master_id, EInvalidObject);
-    // @TODO: isn't the user_profile in the receipt redundant here? Especially given that receipts only have key and can not be transferred.
-    assert!(object::id_address(buyer_profile) == user_profile, EInvalidBuyer);
 
+    // Burn the receipt to get the master id and the user profile
+    let (master_id, user_profile) = receipt::burn(receipt);
+
+    // Receive the master from the seller profile
+    let master = receive_master_(seller_profile, master);
+
+    // Validate the master id from the receipt and the master object
+    assert!(object::id(&master) == master_id, EInvalidObject);
+
+    // Transfer the master to the buyer profile
     transfer::public_transfer(master, user_profile);
   }
 

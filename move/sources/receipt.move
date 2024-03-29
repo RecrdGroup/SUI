@@ -15,13 +15,17 @@ module recrd::receipt {
         user_profile: address,
     }
 
-    /// Users who buy a `Master<T>` object will receive a receipt as proof of purchase.
-    public fun new( _: &AdminCap, master_id: ID, addr: address, ctx: &mut TxContext) {
+    /// Users who buy a `Master<T>` object will receive a receipt as proof of purchase sent
+    /// to their profile. The receipt contains the `master_id` and `user_profile` of the purchase.
+    /// We include the `master_id` to allow the user to move the `Master<T>` object to another profile.
+    /// The `user_profile` is the Profile address of the user who made the purchase.
+    /// We include the `user_profile` so that `Master<T>` is transferred to the correct profile.
+    public fun new( _: &AdminCap, master_id: ID, profile: address, ctx: &mut TxContext) {
         transfer::transfer(Receipt {
             id: object::new(ctx),
             master_id,
-            user_profile: addr,
-        }, addr);
+            user_profile: profile,
+        }, profile);
     }
 
     /// Receipt is burned to get the `master_id` and `user_profile` of the purchase.
