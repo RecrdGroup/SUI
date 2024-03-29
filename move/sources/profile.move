@@ -99,6 +99,7 @@ module recrd::profile {
     );
   }
 
+  // Admin restricted function to authorize a user to access the profile with a specific access level.
   public fun authorize(_: &AdminCap, self: &mut Profile, user: address, access: u8, _ctx: &mut TxContext) {
     assert!(access == REMOVE_ACCESS || access == BORROW_ACCESS, EInvalidAccessOption);
     // @TODO: decide if only admin can authorize or users of access x can also authorize with access x
