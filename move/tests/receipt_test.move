@@ -1,18 +1,21 @@
 #[test_only]
 module recrd::receipt_test {
-
+    // === Imports ===
     use sui::test_scenario::{Self as ts};
     use sui::object;
-
     use recrd::core;
     use recrd::receipt::{Self, Receipt};
 
+    // === Constants ===
     const ADMIN: address = @0xDECAF;
     const USER: address = @0xFACE;
     const MASTER_ID: address = @0xC0FFEE;
 
+    // === Errors ===
     const EInvalidMasterId: u64 = 1001;
 
+    // === Tests ===
+    
     #[test]
     public fun mints_and_burns_receipt() {
         let scenario = ts::begin(ADMIN);

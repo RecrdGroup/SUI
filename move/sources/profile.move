@@ -36,15 +36,18 @@ module recrd::profile {
   const ENoEntryFound: u64 = 6;
 
   // === Constants ===
-  const BORROW_ACCESS: u8 = 0; // Allows to borrow with a hot potato, so it has to be returned
-  const REMOVE_ACCESS: u8 = 1; // Allows to remove the item from the Profile without restrictions
+
+  // Allows to borrow with a hot potato, so it has to be returned
+  const BORROW_ACCESS: u8 = 0; 
+  // Allows to remove the item from the Profile without restrictions
+  const REMOVE_ACCESS: u8 = 1; 
 
   const ON_SALE: u8 = 1;
   // const SUSPENDED: u8 = 2;
 
   // === Structs ===
 
-  // A Promise hot potato to ensure the master is returned back to the profile when borrowed by someone.
+  /// A Promise hot potato to ensure Master is returned to profile when borrowed.
   struct Promise {
     master_id: ID,
     profile: address
@@ -66,21 +69,21 @@ module recrd::profile {
     videos_watched: u64,
 	  // Number of adverts seen
 	  adverts_watched: u64,
+    // Number of followers
 	  number_of_followers: u64,
+    // Number of users followed
 	  number_of_following: u64,
+    // Total ad revenue earned
   	ad_revenue: u64,
+    // Total commission revenue earned
 	  commission_revenue: u64
   }
 
   // === Public Functions ===
 
-  // Create a new `Profile` object and make it a shared object.
-  // @TODO: Who should be able to create profiles? Probably only admin
+  /// Creates a new `Profile` object and makes it a shared object.
   public fun create_and_share(
-    _: &AdminCap,
-    user_id: String,
-    username: String,
-    ctx: &mut TxContext,
+    _: &AdminCap, user_id: String, username: String, ctx: &mut TxContext,
   ) {
     transfer::public_share_object(
       Profile {
@@ -99,8 +102,10 @@ module recrd::profile {
     );
   }
 
-  // Admin restricted function to authorize a user to access the profile with a specific access level.
-  public fun authorize(_: &AdminCap, self: &mut Profile, user: address, access: u8, _ctx: &mut TxContext) {
+  /// Admin authorizes user with level of access to the profile.
+  public fun authorize(
+    _: &AdminCap, self: &mut Profile, user: address, access: u8, _ctx: &mut TxContext
+  ) {
     assert!(access == REMOVE_ACCESS || access == BORROW_ACCESS, EInvalidAccessOption);
     // @TODO: decide if only admin can authorize or users of access x can also authorize with access x
     // let sender_access = *table::borrow(&self.authorizations, tx_context::sender(ctx));
@@ -108,29 +113,35 @@ module recrd::profile {
     table::add(&mut self.authorizations, user, access);
   }
 
-  // Function to receive a Master<T>. 
   #[allow(lint(self_transfer))]
+  /// Receives Master<T> iff sender is in the authorizations table with REMOVE_ACCESS.
   public fun receive_master<T: key + store>(
-    self: &mut Profile, 
-    master: Receiving<Master<T>>,
-    ctx: &mut TxContext
+    self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): Master<T> {
-    assert!(*table::borrow(&self.authorizations, tx_context::sender(ctx)) == REMOVE_ACCESS, EInvalidAccessRights);
-    receive_master_(self, master, ctx)
+    assert!(
+      *table::borrow(&self.authorizations, tx_context::sender(ctx)) == REMOVE_ACCESS,
+      EInvalidAccessRights
+    );
+
+    receive_master_(self, master)
   }
 
-  // Borrows the Master temporarily with a Promise to return it back. 
+  /// Borrows Master<T> temporarily with a Promise to return it back. 
   public fun borrow_master<T: key + store>(
-    self: &mut Profile,
-    master: Receiving<Master<T>>,
-    ctx: &mut TxContext
+    self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): (Master<T>, Promise) {
-    assert!(*table::borrow(&self.authorizations, tx_context::sender(ctx)) == BORROW_ACCESS, EInvalidAccessRights);
-    let master = receive_master_(self, master, ctx);
+    assert!(
+      *table::borrow(&self.authorizations, tx_context::sender(ctx)) == BORROW_ACCESS, 
+      EInvalidAccessRights
+    );
+
+    let master = receive_master_(self, master);
+
     let promise = Promise { 
       master_id: object::id(&master),
       profile: object::id_address(self)
     };
+
     (master, promise)
   }
 
@@ -147,14 +158,13 @@ module recrd::profile {
     master: Receiving<Master<T>>,
     buyer_profile: &mut Profile,
     receipt: Receiving<Receipt>,
-    ctx: &mut TxContext
   ) {
     // Needs to receive both the receipt and a master. Receipt will validate the
     // correctness of the master to be transferred as well as provide the
     // target profile address it should be transferred to
     let receipt = receipt::receive(&mut buyer_profile.id, receipt);
     let (master_id, user_profile) = receipt::burn(receipt);
-    let master = receive_master_(seller_profile, master, ctx);
+    let master = receive_master_(seller_profile, master);
     assert!(object::id(&master) == master_id, EInvalidObject);
     // @TODO: isn't the user_profile in the receipt redundant here? Especially given that receipts only have key and can not be transferred.
     assert!(object::id_address(buyer_profile) == user_profile, EInvalidBuyer);
@@ -167,11 +177,8 @@ module recrd::profile {
 
   // @TODO: (note) Assumption that the user id & username do not change 
 
-  // Update the `watch_time` field of the `Profile` object.
   public fun update_watch_time(
-    _: &AdminCap,
-    self: &mut Profile,
-    new_watch_time: u64,
+    _: &AdminCap, self: &mut Profile, new_watch_time: u64,
   ) {
     // Make sure the watch_time is greater than the current watch_time.
     assert!(new_watch_time > self.watch_time, ENewValueShouldBeHigher);
@@ -180,24 +187,19 @@ module recrd::profile {
   }
 
   public fun update_videos_watched(
-    _: &AdminCap,
-    self: &mut Profile,
-    new_videos_watched: u64,
+    _: &AdminCap, self: &mut Profile, new_videos_watched: u64,
   ) {
     assert!(new_videos_watched > self.videos_watched, ENewValueShouldBeHigher);
     self.videos_watched = new_videos_watched;
   }
 
   public fun update_adverts_watched(
-    _: &AdminCap,
-    self: &mut Profile,
-    new_adverts_watched: u64,
+    _: &AdminCap, self: &mut Profile, new_adverts_watched: u64,
   ) {
     assert!(new_adverts_watched > self.adverts_watched, ENewValueShouldBeHigher);
     self.adverts_watched = new_adverts_watched;
   }
 
-  // @TODO: any restrictions for this one?
   public fun update_number_of_followers(
     _: &AdminCap,
     self: &mut Profile,
@@ -206,39 +208,27 @@ module recrd::profile {
     self.number_of_followers = new_number_of_followers;
   }
 
-  // @TODO: any restrictions for this one?
   public fun update_number_of_following(
-    _: &AdminCap,
-    self: &mut Profile,
-    new_number_of_following: u64,
+    _: &AdminCap, self: &mut Profile, new_number_of_following: u64,
   ) {
     self.number_of_following = new_number_of_following;
   }
 
-  // @TODO: can this only be additive? 
   public fun update_ad_revenue(
-    _: &AdminCap,
-    self: &mut Profile,
-    new_ad_revenue: u64,
+    _: &AdminCap, self: &mut Profile, new_ad_revenue: u64,
   ) {
     assert!(new_ad_revenue > self.ad_revenue, ENewValueShouldBeHigher);
     self.ad_revenue = new_ad_revenue;
   }
 
-  // @TODO: can this only be additive? 
   public fun update_commission_revenue(
-    _: &AdminCap,
-    self: &mut Profile,
-    new_commission_revenue: u64,
+    _: &AdminCap, self: &mut Profile, new_commission_revenue: u64,
   ) {
     assert!(new_commission_revenue > self.commission_revenue, ENewValueShouldBeHigher);
     self.commission_revenue = new_commission_revenue;
   }
 
   // === Accessors ===
-  // @TODO: Do we need to provide programmatic access all the profile fields? 
-  // @TODO: Should we expose accessors publicly or test_only?
-
 
   public fun user_id(self: &Profile): String {
     self.user_id
@@ -283,9 +273,7 @@ module recrd::profile {
 
   // === Private Functions ===
   fun receive_master_<T: key + store>(
-    self: &mut Profile, 
-	  master_to_receive: Receiving<Master<T>>,
-	  _ctx: &TxContext
+    self: &mut Profile, master_to_receive: Receiving<Master<T>>
   ): Master<T> {
     let master = transfer::public_receive(&mut self.id, master_to_receive);
     assert!(master::sale_status(&master) != ON_SALE, EInvalidSaleStatus);
