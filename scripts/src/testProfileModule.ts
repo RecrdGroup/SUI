@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ProfileModule } from "./modules/ProfileModule";
-import { ADMIN_CAP, USER_PRIVATE_KEY } from "./config";
+import { USER_PRIVATE_KEY } from "./config";
 import { getSuiAddress } from "./utils";
 
 (async () => {
