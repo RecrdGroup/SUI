@@ -1,0 +1,23 @@
+{
+  "name": "sdk-integration",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@mysten/bcs": "^0.11.1",
+    "@mysten/kiosk": "^0.8.5",
+    "@mysten/sui.js": "^0.51.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "env-cmd": "^10.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.3"
+  }
+}
