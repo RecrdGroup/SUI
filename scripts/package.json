@@ -6,8 +6,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node src/index",
-    "testProfile": "ts-node src/testProfileModule.ts",
-    "testMaster": "ts-node src/testMasterModule.ts"
+    "testProfileCreate": "ts-node src/tests/profile/testProfileCreate.ts",
+    "testProfileAuthorize": "ts-node src/tests/profile/testProfileAuthorize.ts",
+    "testProfileUpdate": "ts-node src/tests/profile/testProfileUpdate.ts",
+    "testMasterMint": "ts-node src/tests/master/testMasterMint.ts",
+    "testMasterBurn": "ts-node src/tests/master/testMasterBurn.ts",
+    "testGetMaster": "ts-node src/tests/master/testGetMaster.ts",
+    "testGetMasterMetadata": "ts-node src/tests/master/testGetMasterMetadata.ts"
   },
   "author": "",
   "license": "ISC",

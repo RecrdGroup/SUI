@@ -22,3 +22,32 @@ export interface AuthorizationDynamicFieldContent {
     value: number;
   };
 }
+
+export interface Master {
+  id: string;
+  type: string;
+  metadataRef: string;
+  title: string;
+  imageUrl: string;
+  mediaUrl: string;
+  saleStatus: number;
+}
+
+export interface MasterMetadata {
+  id: string;
+  masterId: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  mediaUrl: string;
+  hashtags: string[];
+  creatorProfileId: string;
+  royaltyPercentageBp: number;
+  parent: string | null;
+  origin: string | null;
+  expressions: number;
+  revenueTotal: number;
+  revenueAvailable: number;
+  revenuePaid: number;
+  revenuePending: number;
+}

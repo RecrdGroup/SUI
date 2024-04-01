@@ -1,8 +1,8 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { MasterModule, mintMasterParams } from "./modules/MasterModule";
-import { ProfileModule } from "./modules/ProfileModule";
+import { MasterModule, mintMasterParams } from "../../modules/MasterModule";
+import { ProfileModule } from "../../modules/ProfileModule";
 
 (async () => {
   try {

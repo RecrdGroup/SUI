@@ -1,9 +1,9 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { ProfileModule } from "./modules/ProfileModule";
-import { USER_PRIVATE_KEY } from "./config";
-import { getSuiAddress } from "./utils";
+import { ProfileModule } from "../../modules/ProfileModule";
+import { USER_PRIVATE_KEY } from "../../config";
+import { getSuiAddress } from "../../utils";
 
 (async () => {
   try {

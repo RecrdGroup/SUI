@@ -4,8 +4,9 @@
 import { SuiObjectChangeCreated } from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import { executeTransaction, getSigner } from "../utils";
-import { RECRD_PRIVATE_KEY, PACKAGE_ID, ADMIN_CAP } from "../config";
+import { RECRD_PRIVATE_KEY, PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
 import { SUI_FRAMEWORK_ADDRESS } from "@mysten/sui.js/utils";
+import { Master, MasterMetadata } from "../interfaces";
 
 export interface mintMasterParams {
   type: "Video" | "Audio";
@@ -86,5 +87,56 @@ export class MasterModule {
 
     // Return the created Master and Metadata objects
     return { master, metadata };
+  }
+
+  /// Query a Master object by its ID and return the object
+  async getMasterById( masterId: string ): Promise<Master> {
+    // Retrieve the Master object
+    const masterRes = await suiClient.getObject({
+      id: masterId, 
+      options: { showContent: true } 
+    });
+
+    const content: any = masterRes.data?.content;
+
+    return {
+      id: content?.fields.id.id,
+      type: content?.type,
+      metadataRef: content?.fields.metadata_ref,
+      title: content?.fields.title,
+      imageUrl: content?.fields.image_url,
+      mediaUrl: content?.fields.media_url,
+      saleStatus: content?.fields.sale_status,
+    }
+  }
+
+  /// Query a Master Metadata object by its ID and return the object
+  async getMasterMetadataById( metadataId: string ): Promise<MasterMetadata> {
+    // Retrieve the Master Metadata object
+    const metadataRes = await suiClient.getObject({
+      id: metadataId, 
+      options: { showContent: true } 
+    });
+
+    const content: any = metadataRes.data?.content;
+
+    return {
+      id: metadataRes.data?.objectId!,
+      masterId: content?.fields.master_id,
+      title: content?.fields.title,
+      description: content?.fields.description,
+      imageUrl: content?.fields.image_url,
+      mediaUrl: content?.fields.media_url,
+      hashtags: content?.fields.hashtags,
+      creatorProfileId: content?.fields.creator_profile_id,
+      royaltyPercentageBp: content?.fields.royalty_percentage_bp,
+      parent: content?.fields.parent ?? null,
+      origin: content?.fields.origin ?? null,
+      expressions: content?.fields.expressions,
+      revenueTotal: content?.fields.revenue_total,
+      revenueAvailable: content?.fields.revenue_available,
+      revenuePaid: content?.fields.revenue_paid,
+      revenuePending: content?.fields.revenue_pending,
+    }
   }
 }
