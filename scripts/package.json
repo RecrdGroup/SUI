@@ -5,15 +5,16 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node src/index"
+    "start": "ts-node src/index",
+    "testProfile": "ts-node src/testProfileModule.ts"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.11.20",
+    "@types/node": "^20.12.2",
     "@mysten/bcs": "^0.11.1",
     "@mysten/kiosk": "^0.8.5",
-    "@mysten/sui.js": "^0.51.1",
+    "@mysten/sui.js": "^0.50.1",
     "dotenv": "^16.4.5"
   },
   "dependencies": {

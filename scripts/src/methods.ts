@@ -3,15 +3,11 @@ import { Ed25519Keypair } from "@mysten/sui.js/keypairs/ed25519";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import { SUI_FRAMEWORK_ADDRESS } from "@mysten/sui.js/utils";
 import {
-  ADMIN_ADDRESS,
   ADMIN_CAP,
-  ADMIN_PHRASE,
   LOYALTY_FREE_URL,
   MASTER_BURN_METADATA_TARGET,
   MASTER_BURN_TARGET,
   MASTER_MINT_TARGET,
-  PROFILE_MINT_TARGET,
-  PROFILE_UPDATE_TARGET,
   SUI_NETWORK,
   VIDEO_TYPE,
 } from "./config";
@@ -28,33 +24,9 @@ const execute = async ({ txb }: { txb: TransactionBlock }) => {
     requestType: "WaitForLocalExecution",
     options: {
       showEffects: true,
+
     },
   });
-};
-
-// === Profile Operations ===
-const mintProfile = async () => {
-  const txb = new TransactionBlock();
-  txb.moveCall({
-    target: PROFILE_MINT_TARGET,
-    arguments: [txb.pure("1d2f3c"), txb.pure("Test User")],
-  });
-  const result = await execute({ txb });
-  console.log(
-    "Profile minted: ",
-    result.effects?.created?.[0].reference.objectId
-  );
-  console.log("Digest: ", result.digest);
-};
-
-const updateProfile = async (profile: string, newWatchTime: number) => {
-  const txb = new TransactionBlock();
-  txb.moveCall({
-    target: PROFILE_UPDATE_TARGET,
-    arguments: [txb.object(profile), txb.pure(newWatchTime)],
-  });
-  const result = await execute({ txb });
-  console.log("Digest: ", result.digest);
 };
 
 // === Master Operations ===

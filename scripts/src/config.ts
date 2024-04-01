@@ -1,10 +1,15 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+import path from "path";
 import { SuiClient } from "@mysten/sui.js/client";
 import { config } from "dotenv";
 
-config({});
+const envPath = path.resolve(__dirname, '../.env');
+
+config({
+  path: envPath,
+});
 
 // Load the environment variables
 export const SUI_NETWORK = process.env.SUI_NETWORK!;
@@ -15,13 +20,11 @@ export const RECRD_PRIVATE_KEY = process.env.RECRD_PRIVATE_KEY!;
 export const USER_PRIVATE_KEY = process.env.USER_PRIVATE_KEY!;
 
 // Create a SuiClient instance.
-const client = new SuiClient({
+export const suiClient = new SuiClient({
   url: SUI_NETWORK,
 });
 
 // Define moveCall targets for smart contracts
-export const PROFILE_MINT_TARGET: `${string}::${string}::${string}` = `${PACKAGE_ID}::profile::create_and_share`;
-export const PROFILE_UPDATE_TARGET: `${string}::${string}::${string}` = `${PACKAGE_ID}::profile::update_watch_time`;
 export const MASTER_MINT_TARGET: `${string}::${string}::${string}` = `${PACKAGE_ID}::master::admin_new`;
 export const MASTER_BURN_TARGET: `${string}::${string}::${string}` = `${PACKAGE_ID}::master::admin_burn_master`;
 export const MASTER_BURN_METADATA_TARGET: `${string}::${string}::${string}` = `${PACKAGE_ID}::master::admin_burn_metadata`;
@@ -36,3 +39,9 @@ export const LOYALTY_FREE_URL =
   console.log("env contains RECRD_PRIVATE_KEY:", keys.includes("RECRD_PRIVATE_KEY"));
   console.log("env contains USER_PRIVATE_KEY:", keys.includes("USER_PRIVATE_KEY"));
   console.log('-----------------------------------')
+
+// In config.ts, after loading environment variables
+if (!SUI_NETWORK || !PACKAGE_ID || !ADMIN_CAP || !RECRD_PRIVATE_KEY) {
+  console.error("Critical environment variable(s) missing. Please check your .env file.");
+  process.exit(1); // Exits the process with a failure code
+}

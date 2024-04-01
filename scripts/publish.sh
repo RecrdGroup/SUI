@@ -21,9 +21,7 @@ if [ $# -ne 0 ]; then
   fi
 fi
 
-echo "- Admin Address is: ${ADMIN_ADDRESS}"
-
-import_address=$(sui keytool import "$ADMIN_PHRASE" ed25519)
+PRIVATE_KEY=$(cat ~/.sui/sui_config/sui.keystore | jq -r '.[0]')
 
 switch_res=$(sui client switch --address ${ADMIN_ADDRESS})
 
@@ -39,19 +37,24 @@ if [[ "$publish_res" =~ "error" ]]; then
 fi
 
 publishedObjs=$(echo "$publish_res" | jq -r '.objectChanges[] | select(.type == "published")')
-
+DIGEST=$(echo "$publish_res" | jq -r '.digest')
 PACKAGE_ID=$(echo "$publishedObjs" | jq -r '.packageId')
 
 newObjs=$(echo "$publish_res" | jq -r '.objectChanges[] | select(.type == "created")')
 
 ADMIN_CAP_ID=$(echo "$newObjs" | jq -r 'select (.objectType | contains("core::AdminCap")).objectId')
+UPGRADE_CAP_ID=$(echo "$newObjs" | jq -r 'select (.objectType | contains("::package::UpgradeCap")).objectId')
+PUBLISHER=$(echo "$newObjs" | jq -r 'select (.objectType | contains("package::Publisher")).objectId')
 
 cat >.env<<-ENV
 SUI_NETWORK=$NETWORK
-PACKAGE_ADDRESS=$PACKAGE_ID
-ADMIN_CAP=$ADMIN_CAP_ID
-ADMIN_ADDRESS=$ADMIN_ADDRESS
-ADMIN_PHRASE=$ADMIN_PHRASE
+DIGEST=$DIGEST
+RECRD_PACKAGE_ID=$PACKAGE_ID
+RECRD_UPGRADE_CAP=$UPGRADE_CAP_ID
+CORE_ADMIN_CAP=$ADMIN_CAP_ID
+PUBLISHER=$PUBLISHER
+RECRD_PRIVATE_KEY=$PRIVATE_KEY
+USER_PRIVATE_KEY=
 ENV
 
 echo "Contract Deployment finished!"
