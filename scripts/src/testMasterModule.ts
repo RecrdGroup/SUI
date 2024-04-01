@@ -1,20 +1,27 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { MasterModule } from "./modules/MasterModule";
+import { MasterModule, mintMasterParams } from "./modules/MasterModule";
+import { ProfileModule } from "./modules/ProfileModule";
 
 (async () => {
   try {
     const masterModule = new MasterModule();
+    const profileModule = new ProfileModule();
 
-    const mintMasterParams = {
+    // Mint a Profile object
+    const userId = "testUserId";
+    const username = "testUsername";
+    const profileRes = await profileModule.createAndShareProfile(userId, username);
+
+    const mintMasterParams: mintMasterParams = {
       type: "Video",
       title: "Test Video",
       description: "This is a test video",
       image_url: "https://example.com/image.jpg",
       media_url: "https://example.com/video.mp4",
       hashtags: ["test", "video"],
-      creator_profile_id: "testProfileId",
+      creator_profile_id: profileRes.objectId,
       royalty_percentage_bp: 1000,
       sale_status: 1,
     };
