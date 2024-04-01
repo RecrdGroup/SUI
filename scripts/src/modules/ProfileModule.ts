@@ -3,9 +3,10 @@
 
 import { SuiObjectChangeCreated } from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { executeTransaction, getSigner } from "../utils";
+import { executeTransaction, getSigner, getSuiAddress } from "../utils";
 import { PACKAGE_ID, ADMIN_CAP, RECRD_PRIVATE_KEY, suiClient } from "../config";
-import { Profile, AuthorizationDynamicFieldContent } from "../interfaces";
+import { Profile, AuthorizationDynamicFieldContent, Master } from "../interfaces";
+import { Signer } from "@mysten/sui.js/cryptography";
 
 // Contract supported functions for updating profile fields
 const PROFILE_UPDATE_FUNCTIONS = {
@@ -195,6 +196,39 @@ export class ProfileModule {
 
   /// TODO: buy
   /// TODO: receive_master
+
+  /// Receive Master from a profile if sender is authorized with REMOVE_ACCESS (1)
+  async receiveMaster(profileId: string, masterId: string, signer: Signer) {
+    // Get the Master type 
+    const masterRes = await suiClient.getObject({ 
+      id: masterId,
+      options: { showContent: true }
+    });
+
+    const content: any = masterRes.data?.content;
+    const masterType = content.type;
+
+    // Create a transaction block
+    const txb = new TransactionBlock();
+
+    // Call the smart contract function to receive a Master object
+    let master = txb.moveCall({
+      target: `${PACKAGE_ID}::profile::receive_master`,
+      arguments: [
+        txb.object(profileId),
+        txb.object(masterId),
+      ],
+      typeArguments: [masterType],
+    });
+
+    txb.transferObjects([master], getSuiAddress(RECRD_PRIVATE_KEY));
+    txb.setGasBudget(1000000);
+    // Sign and execute the transaction
+    const response = await executeTransaction({ txb, signer });
+
+    // Return the received Master object
+    return response;
+  }
   /// TODO: borrow_master
   /// TODO: return_master
 }

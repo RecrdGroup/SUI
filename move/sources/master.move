@@ -425,6 +425,7 @@ module recrd::master {
     master: &mut Master<T>,
     sale_status: u8,
   ) {
+    // @TODO: we need to allow removal of ON_SALE, else we cannot receive the Master from the Profile.
     assert!(sale_status == ON_SALE || sale_status == SUSPENDED, EInvalidSaleStatus);
     master.sale_status = sale_status;
   }

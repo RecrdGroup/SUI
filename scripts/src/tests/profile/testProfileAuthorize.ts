@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ProfileModule } from "../../modules/ProfileModule";
-import { USER_PRIVATE_KEY } from "../../config";
+import { USER_PRIVATE_KEY, REMOVE_ACCESS } from "../../config";
 import { getSuiAddress } from "../../utils";
 
 (async () => {
@@ -10,11 +10,11 @@ import { getSuiAddress } from "../../utils";
     const profileModule = new ProfileModule();
     
     // Dummy Profile ID 
-    const profileId = "0xa5cfc3c00e495b8270af85fc7e6e7ac1422ec3362d13ca0db52585526d234b14";
+    const profileId = "0x51a3f7d2dcc1507e27b1428eb95fd57697c10ed9985e045a638499dfecbc473f";
     
     // Authorize user to update profile
     const userAddress = getSuiAddress(USER_PRIVATE_KEY);
-    const profileRes = await profileModule.authorizeUser(profileId, userAddress, 1);
+    const profileRes = await profileModule.authorizeUser(profileId, userAddress, REMOVE_ACCESS);
 
     console.log("Updated profile:", profileRes);
   } catch (error) {

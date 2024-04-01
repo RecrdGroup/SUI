@@ -9,6 +9,7 @@
     "testProfileCreate": "ts-node src/tests/profile/testProfileCreate.ts",
     "testProfileAuthorize": "ts-node src/tests/profile/testProfileAuthorize.ts",
     "testProfileUpdate": "ts-node src/tests/profile/testProfileUpdate.ts",
+    "testProfileReceive": "ts-node src/tests/profile/testProfileReceive.ts",
     "testMasterMint": "ts-node src/tests/master/testMasterMint.ts",
     "testMasterBurn": "ts-node src/tests/master/testMasterBurn.ts",
     "testGetMaster": "ts-node src/tests/master/testGetMaster.ts",

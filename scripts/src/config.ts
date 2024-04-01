@@ -25,9 +25,8 @@ export const suiClient = new SuiClient({
 });
 
 // Define moveCall targets for smart contracts
-export const MASTER_MINT_TARGET: `${string}::${string}::${string}` = `${PACKAGE_ID}::master::admin_new`;
-export const MASTER_BURN_TARGET: `${string}::${string}::${string}` = `${PACKAGE_ID}::master::admin_burn_master`;
-export const MASTER_BURN_METADATA_TARGET: `${string}::${string}::${string}` = `${PACKAGE_ID}::master::admin_burn_metadata`;
+export const BORROW_ACCESS = 0;
+export const REMOVE_ACCESS = 1;
 export const VIDEO_TYPE = `${PACKAGE_ID}::master::Video`;
 export const AUDIO_TYPE = `${PACKAGE_ID}::master::Audio`;
 export const LOYALTY_FREE_URL =
