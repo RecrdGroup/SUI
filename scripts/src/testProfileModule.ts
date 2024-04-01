@@ -13,7 +13,7 @@ import { getSuiAddress } from "./utils";
     const userId = "testUserId";
     const username = "testUsername";
     
-    const result = await profileModule.createAndShareProfile(ADMIN_CAP, userId, username);
+    const result = await profileModule.createAndShareProfile(userId, username);
     console.log("Profile created successfully:", result);
 
     const profileId = result.objectId;

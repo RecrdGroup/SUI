@@ -22,7 +22,7 @@ type ProfileUpdateType = keyof typeof PROFILE_UPDATE_FUNCTIONS;
 
 export class ProfileModule {
   /// Create and share a profile
-  async createAndShareProfile(adminCap: string, userId: string, username: string): Promise<SuiObjectChangeCreated> {
+  async createAndShareProfile(userId: string, username: string): Promise<SuiObjectChangeCreated> {
     // Create a transaction block
     const txb = new TransactionBlock();
 
