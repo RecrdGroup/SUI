@@ -42,7 +42,7 @@ module recrd::receipt {
 
     /// Sender receives a receipt after the purchase resolves successfully for both parties.
     public(friend) fun receive(profile_id: &mut UID, receipt: Receiving<Receipt>): Receipt {
-        transfer::receive(profile_id, receipt)
+        transfer::receive<Receipt>(profile_id, receipt)
     }
 
 }

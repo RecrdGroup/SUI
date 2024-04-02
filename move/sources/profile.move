@@ -114,7 +114,7 @@ module recrd::profile {
 
   #[allow(lint(self_transfer))]
   /// Receives Master<T> iff sender is in the authorizations table with REMOVE_ACCESS.
-  public fun receive_master<T: key + store>(
+  public fun receive_master<T: drop>(
     self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): Master<T> {
     assert!(
@@ -122,11 +122,11 @@ module recrd::profile {
       EInvalidAccessRights
     );
 
-    receive_master_(self, master)
+    receive_master_<T>(self, master)
   }
 
   /// Borrows Master<T> temporarily with a Promise to return it back. 
-  public fun borrow_master<T: key + store>(
+  public fun borrow_master<T: drop>(
     self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): (Master<T>, Promise) {
     assert!(
@@ -134,7 +134,7 @@ module recrd::profile {
       EInvalidAccessRights
     );
 
-    let master = receive_master_(self, master);
+    let master = receive_master_<T>(self, master);
 
     let promise = Promise { 
       master_id: object::id(&master),
@@ -153,7 +153,7 @@ module recrd::profile {
 
   /// Buys a Master<T> object from a seller profile and transfers it to the 
   /// buyer profile after redeeming the receipt.
-  public fun buy<T: key + store>(
+  public fun buy<T: drop>(
     seller_profile: &mut Profile,
     master: Receiving<Master<T>>,
     buyer_profile: &mut Profile,
@@ -166,7 +166,7 @@ module recrd::profile {
     let (master_id, user_profile) = receipt::burn(receipt);
 
     // Receive the master from the seller profile
-    let master = receive_master_(seller_profile, master);
+    let master = receive_master_<T>(seller_profile, master);
 
     // Validate the master id from the receipt and the master object
     assert!(object::id(&master) == master_id, EInvalidObject);
@@ -275,10 +275,10 @@ module recrd::profile {
   }
 
   // === Private Functions ===
-  fun receive_master_<T: key + store>(
+  fun receive_master_<T: drop>(
     self: &mut Profile, master_to_receive: Receiving<Master<T>>
   ): Master<T> {
-    let master = transfer::public_receive(&mut self.id, master_to_receive);
+    let master = transfer::public_receive<Master<T>>(&mut self.id, master_to_receive);
     assert!(master::sale_status(&master) != ON_SALE, EInvalidSaleStatus);
     master
   }
