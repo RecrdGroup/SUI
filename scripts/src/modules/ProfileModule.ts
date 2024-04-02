@@ -197,7 +197,9 @@ export class ProfileModule {
     return this.getProfileById(profileId);
   }
 
-  /// TODO: buy
+  /// Buy Master from a profile and transfer to the buyer's profile
+  async buyMaster(from: string, masterId: string, to: string, receipt: string, signer: Signer) {
+  }
 
   /// Receive Master from a profile if sender is authorized with REMOVE_ACCESS (1)
   async receiveMaster(profileId: string, masterId: string, signer: Signer) {
@@ -249,6 +251,4 @@ export class ProfileModule {
     // Return the received Master object
     return response;
   }
-  /// TODO: borrow_master
-  /// TODO: return_master
 }

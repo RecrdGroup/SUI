@@ -51,3 +51,9 @@ export interface MasterMetadata {
   revenuePaid: number;
   revenuePending: number;
 }
+
+export interface Receipt {
+  id: string;
+  masterId: string;
+  userProfile: string;
+}
