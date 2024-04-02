@@ -13,8 +13,7 @@ import { getSigner } from "../../utils";
     const masterModule = new MasterModule();
 
     // Get last minted Master ID from temp file
-    // const masterMetadataId = readFileSync(join(__dirname, '..', 'tempMasterMetadataId.txt'), { encoding: 'utf-8' });
-    const masterMetadataId = "0x4b48b2bea89c391dcfa7eb81869c75d13a168ec6c0b5621c63df412332c8df07";
+    const masterMetadataId = readFileSync(join(__dirname, '..', 'tempMasterMetadataId.txt'), { encoding: 'utf-8' });
 
     // Burn Master
     await masterModule.burnMasterMetadata(masterMetadataId, getSigner(RECRD_PRIVATE_KEY));
