@@ -40,3 +40,11 @@ export const getSuiAddress = (secretKey: string) => {
   const keypair = getSigner(secretKey);
   return keypair.getPublicKey().toSuiAddress();
 };
+
+
+  /// Get the <T> type of a Master object
+  export const getMasterT = ( type: string ): string | null => {
+    const regex = /Master<(.+)>/;
+    const match = type.match(regex);
+    return match ? match[1] : null;
+  }

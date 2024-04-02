@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ProfileModule } from "../../modules/ProfileModule";
-import { USER_PRIVATE_KEY } from "../../config";
+import { USER_PRIVATE_KEY, RECRD_PRIVATE_KEY } from "../../config";
 import { getSigner, getSuiAddress } from "../../utils";
 
 (async () => {
@@ -10,8 +10,10 @@ import { getSigner, getSuiAddress } from "../../utils";
     const profileModule = new ProfileModule();
     
     // Dummy Profile ID 
-    const profileId = "0x51a3f7d2dcc1507e27b1428eb95fd57697c10ed9985e045a638499dfecbc473f";
-    const masterId = "0x13c837a57a48170569a1a1373a06cd87099d433ea3d577032b9091f620d62745";
+    const profileId = "0x9d49d0641d2e6d12700e13a36b1e61a8c170c5d3f6488093dcbaea192bf1354c";
+
+    // Dummy Master ID
+    const masterId = "0x5fced89bf2d35f399eaf9bd9f9718cccf1f0e4a01eaddad814ea6767c81014d0";
 
     const res = await profileModule.receiveMaster(profileId, masterId, getSigner(USER_PRIVATE_KEY));
 

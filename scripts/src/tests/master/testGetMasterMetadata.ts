@@ -8,7 +8,7 @@ import { MasterModule } from "../../modules/MasterModule";
     const masterModule = new MasterModule();
     
     // Dummy Master ID
-    const masterId = "0xb9d3a895e70cbdafc0103a7e785e60c35fe46a118c6e2cd9c4259be5dc7b99a7";
+    const masterId = "0x7745efcc9ce06a7a6c2322f65e68764e39de31444b6f16c0152b440c83ebc005";
     
     const result = await masterModule.getMasterMetadataById(masterId);
     console.log("Master metadata:", result);

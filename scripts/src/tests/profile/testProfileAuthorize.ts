@@ -10,7 +10,7 @@ import { getSuiAddress } from "../../utils";
     const profileModule = new ProfileModule();
     
     // Dummy Profile ID 
-    const profileId = "0x51a3f7d2dcc1507e27b1428eb95fd57697c10ed9985e045a638499dfecbc473f";
+    const profileId = "0x9d49d0641d2e6d12700e13a36b1e61a8c170c5d3f6488093dcbaea192bf1354c";
     
     // Authorize user to update profile
     const userAddress = getSuiAddress(USER_PRIVATE_KEY);

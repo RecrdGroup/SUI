@@ -3,7 +3,7 @@
 
 import { SuiObjectChangeCreated } from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { executeTransaction, getSigner, getSuiAddress } from "../utils";
+import { executeTransaction, getSigner, getMasterT } from "../utils";
 import { PACKAGE_ID, ADMIN_CAP, RECRD_PRIVATE_KEY, suiClient } from "../config";
 import { Profile, AuthorizationDynamicFieldContent, Master } from "../interfaces";
 import { Signer } from "@mysten/sui.js/cryptography";
@@ -20,6 +20,12 @@ const PROFILE_UPDATE_FUNCTIONS = {
 };
 
 type ProfileUpdateType = keyof typeof PROFILE_UPDATE_FUNCTIONS;
+
+// Define a mapping of error codes to custom error messages
+const errorCodeMessages = {
+  '1': "Sender is not authorized to access the Profile",
+  '2': "The object being received is not of the expected type."
+};
 
 export class ProfileModule {
   /// Create and share a profile
@@ -195,7 +201,6 @@ export class ProfileModule {
   }
 
   /// TODO: buy
-  /// TODO: receive_master
 
   /// Receive Master from a profile if sender is authorized with REMOVE_ACCESS (1)
   async receiveMaster(profileId: string, masterId: string, signer: Signer) {
@@ -206,7 +211,7 @@ export class ProfileModule {
     });
 
     const content: any = masterRes.data?.content;
-    const masterType = content.type;
+    const masterType = getMasterT(content.type);
 
     // Create a transaction block
     const txb = new TransactionBlock();
@@ -218,13 +223,31 @@ export class ProfileModule {
         txb.object(profileId),
         txb.object(masterId),
       ],
-      typeArguments: [masterType],
+      typeArguments: [masterType!],
     });
 
-    txb.transferObjects([master], getSuiAddress(RECRD_PRIVATE_KEY));
-    txb.setGasBudget(1000000);
+    // Get the Sui address of the signer
+    const signerAddress = signer.getPublicKey().toSuiAddress();
+
+    // Transfer the Master object to the signer
+    txb.transferObjects([master], signerAddress);
+
     // Sign and execute the transaction
     const response = await executeTransaction({ txb, signer });
+    
+    // Check if the response indicates a MoveAbort failure
+    if (response.effects?.status?.status === 'failure') {
+      const errorMessage = response.effects.status.error;
+
+      if (errorMessage?.includes('MoveAbort')) {
+        // Iterate through the error codes and check if the error message matches one
+        for (const [code, message] of Object.entries(errorCodeMessages)) {
+          if (errorMessage.includes(`${code}) in command`)) {
+            throw new Error(message);
+          }
+        }
+      }
+    }
 
     // Return the received Master object
     return response;
