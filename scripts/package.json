@@ -11,7 +11,7 @@
     "testProfileUpdate": "ts-node src/tests/profile/testProfileUpdate.ts",
     "testProfileReceive": "ts-node src/tests/profile/testProfileReceive.ts",
     "testMasterMint": "ts-node src/tests/master/testMasterMint.ts",
-    "testMasterBurn": "ts-node src/tests/master/testMasterBurn.ts",
+    "testMasterReceiveAndBurn": "ts-node src/tests/master/testMasterReceiveAndBurn.ts",
     "testGetMaster": "ts-node src/tests/master/testGetMaster.ts",
     "testGetMasterMetadata": "ts-node src/tests/master/testGetMasterMetadata.ts"
   },
