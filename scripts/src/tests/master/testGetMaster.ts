@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { MasterModule } from "../../modules/MasterModule";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 (async () => {
   try {
     const masterModule = new MasterModule();
     
-    // Dummy Master ID
-    const masterId = "0x8be70d76d4068fed6a64eac4465dfa4747ea897badfe5b721ab3e548bf24a2a5";
+    // Get last minted Master ID from temp file
+    const masterId = readFileSync(join(__dirname, '..', 'tempMasterId.txt'), { encoding: 'utf-8' });
     
     const result = await masterModule.getMasterById(masterId);
     console.log("Master:", result);

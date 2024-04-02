@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ProfileModule } from "../../modules/ProfileModule";
+import { writeFileSync } from "fs";
+import { join } from "path";
 
 (async () => {
   try {
@@ -12,6 +14,10 @@ import { ProfileModule } from "../../modules/ProfileModule";
     const username = "alina-chan";
     
     const result = await profileModule.createAndShareProfile(userId, username);
+
+    // Write the profile ID to a temp file for use in other scripts
+    writeFileSync(join(__dirname, '..', 'tempProfileId.txt'), result.objectId);
+
     console.log("Profile created successfully:", result);
 
   } catch (error) {

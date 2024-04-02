@@ -37,3 +37,6 @@ Move.lock
 
 .structurizr/
 workspace.json
+
+# Custom temp files for test
+temp*.txt

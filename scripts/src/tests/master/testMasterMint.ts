@@ -3,13 +3,15 @@
 
 import { MasterModule, mintMasterParams } from "../../modules/MasterModule";
 import { SALE_STATUS } from "../../config";
+import { readFileSync, writeFileSync } from "fs";
+import { join } from "path";
 
 (async () => {
   try {
     const masterModule = new MasterModule();
 
-    // Dummy Profile ID 
-    const profileId = "0x9d49d0641d2e6d12700e13a36b1e61a8c170c5d3f6488093dcbaea192bf1354c";
+    // Get last created Profile ID from temp file
+    const profileId = readFileSync(join(__dirname, '..', 'tempProfileId.txt'), { encoding: 'utf-8' });
 
     // Mint a Master
     const mintMasterParams: mintMasterParams = {
@@ -25,6 +27,10 @@ import { SALE_STATUS } from "../../config";
     };
 
     const result = await masterModule.mintMaster(mintMasterParams);
+
+    // Write the Master ID to a temp file for use in other scripts
+    writeFileSync(join(__dirname, '..', 'tempMasterId.txt'), result.master?.objectId!);
+
     console.log("Master minted successfully:", result);
   } catch (error) {
     console.error("Failed to mint Master:", error);
