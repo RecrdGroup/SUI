@@ -15,7 +15,8 @@
     "testGetMaster": "ts-node src/tests/master/testGetMaster.ts",
     "testGetMasterMetadata": "ts-node src/tests/master/testGetMasterMetadata.ts",
     "testMasterMetadataBurn": "ts-node src/tests/master/testMasterMetadataBurn.ts",
-    "testReceiptMint": "ts-node src/tests/receipt/testReceiptMint.ts"
+    "testReceiptMint": "ts-node src/tests/receipt/testReceiptMint.ts",
+    "testMasterBuy": "ts-node src/tests/master/testMasterBuy.ts"
   },
   "author": "",
   "license": "ISC",

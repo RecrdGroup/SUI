@@ -4,7 +4,7 @@
 import { RECRD_PRIVATE_KEY } from "../../config";
 import { ReceiptModule } from "../../modules/ReceiptModule";
 import { ProfileModule } from "../../modules/ProfileModule";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync} from "fs";
 import { join } from "path";
 import { getSigner } from "../../utils";
 
@@ -22,6 +22,9 @@ import { getSigner } from "../../utils";
       "buyer-chan",
       getSigner(RECRD_PRIVATE_KEY)
     );
+    
+    // Write the buyer profile ID to a temp file
+    writeFileSync(join(__dirname, '..', 'tempBuyerProfileId.txt'), buyerProfileRes.objectId);
 
     // Create a new Receipt
     const res = await receiptModule.newReceipt(masterId, buyerProfileRes.objectId, getSigner(RECRD_PRIVATE_KEY));

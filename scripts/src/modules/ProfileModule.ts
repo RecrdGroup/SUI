@@ -1,11 +1,11 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { SuiObjectChangeCreated } from "@mysten/sui.js/client";
+import { SuiObjectChangeCreated, SuiTransactionBlockResponse } from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { executeTransaction, getSigner, getMasterT } from "../utils";
-import { PACKAGE_ID, ADMIN_CAP, RECRD_PRIVATE_KEY, suiClient } from "../config";
-import { Profile, AuthorizationDynamicFieldContent, Master } from "../interfaces";
+import { executeTransaction, getMasterT } from "../utils";
+import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
+import { Profile, AuthorizationDynamicFieldContent } from "../interfaces";
 import { Signer } from "@mysten/sui.js/cryptography";
 
 // Contract supported functions for updating profile fields
@@ -198,7 +198,35 @@ export class ProfileModule {
   }
 
   /// Buy Master from a profile and transfer to the buyer's profile
-  async buyMaster(from: string, masterId: string, to: string, receipt: string, signer: Signer) {
+  async buyMaster(sellerProfile: string, masterId: string, buyerProfile: string, receiptId: string, signer: Signer): Promise<SuiTransactionBlockResponse> {
+    // Get the Master type
+    const masterRes = await suiClient.getObject({ 
+      id: masterId,
+      options: { showContent: true }
+    });
+
+    const content: any = masterRes.data?.content;
+    const masterType = getMasterT(content.type);
+
+    // Create a transaction block
+    const txb = new TransactionBlock();
+    
+    // Call the smart contract function to buy a Master object
+    txb.moveCall({
+      target: `${PACKAGE_ID}::profile::buy`,
+      arguments: [
+        txb.object(sellerProfile),
+        txb.object(masterId),
+        txb.object(buyerProfile),
+        txb.object(receiptId),
+      ],
+      typeArguments:[masterType!]
+    });
+
+    // Sign and execute the transaction
+    const response = await executeTransaction({ txb, signer });
+
+    return response;
   }
 
   /// Receive Master from a profile if sender is authorized with REMOVE_ACCESS (1)
