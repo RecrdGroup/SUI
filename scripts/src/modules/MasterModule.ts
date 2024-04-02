@@ -3,10 +3,11 @@
 
 import { SuiObjectChangeCreated } from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { executeTransaction, getSigner } from "../utils";
-import { RECRD_PRIVATE_KEY, PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
+import { executeTransaction, getMasterT } from "../utils";
+import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
 import { SUI_FRAMEWORK_ADDRESS } from "@mysten/sui.js/utils";
 import { Master, MasterMetadata } from "../interfaces";
+import { Signer } from "@mysten/sui.js/cryptography";
 
 export interface mintMasterParams {
   type: "Video" | "Audio";
@@ -33,7 +34,7 @@ export const AUDIO_TYPE = `${PACKAGE_ID}::master::Audio`;
 export class MasterModule {
 
   /// Mint a new Master object
-  async mintMaster( params: mintMasterParams ): Promise<mintMasterResponse> {
+  async mintMaster( params: mintMasterParams, signer: Signer ): Promise<mintMasterResponse> {
     // Create a transaction block
     const txb = new TransactionBlock();
 
@@ -66,7 +67,7 @@ export class MasterModule {
     txb.transferObjects([masterTx], params.creator_profile_id);
 
     // Sign and execute the transaction as the admin
-    const response = await executeTransaction({ txb, signer: getSigner(RECRD_PRIVATE_KEY) });
+    const response = await executeTransaction({ txb, signer });
 
     let master, metadata;
 
@@ -138,5 +139,30 @@ export class MasterModule {
       revenuePaid: content?.fields.revenue_paid,
       revenuePending: content?.fields.revenue_pending,
     }
+  }
+
+  /// Burn a Master object by its ID (admin only)
+  async burnMaster( masterId: string, signer: Signer ): Promise<void> {
+    // Get the Master type 
+    const masterRes = await suiClient.getObject({ 
+      id: masterId,
+      options: { showContent: true }
+    });
+
+    const content: any = masterRes.data?.content;
+    const masterType = getMasterT(content.type);
+
+    // Create a transaction block
+    const txb = new TransactionBlock();
+
+    // Call the smart contract function to burn a Master object
+    txb.moveCall({
+      target: `${PACKAGE_ID}::master::admin_burn_master`,
+      arguments: [ txb.object(ADMIN_CAP), txb.object(masterId) ],
+      typeArguments: [ masterType! ],
+    });
+
+    // Sign and execute the transaction as the admin
+    await executeTransaction({ txb, signer });
   }
 }

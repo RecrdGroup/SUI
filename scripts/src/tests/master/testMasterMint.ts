@@ -5,6 +5,8 @@ import { MasterModule, mintMasterParams } from "../../modules/MasterModule";
 import { SALE_STATUS } from "../../config";
 import { readFileSync, writeFileSync } from "fs";
 import { join } from "path";
+import { getSigner } from "../../utils";
+import { RECRD_PRIVATE_KEY } from "../../config";
 
 (async () => {
   try {
@@ -26,7 +28,7 @@ import { join } from "path";
       sale_status: SALE_STATUS.STALE,
     };
 
-    const result = await masterModule.mintMaster(mintMasterParams);
+    const result = await masterModule.mintMaster(mintMasterParams, getSigner(RECRD_PRIVATE_KEY));
 
     // Write the Master ID to a temp file for use in other scripts
     writeFileSync(join(__dirname, '..', 'tempMasterId.txt'), result.master?.objectId!);

@@ -4,6 +4,8 @@
 import { ProfileModule } from "../../modules/ProfileModule";
 import { writeFileSync } from "fs";
 import { join } from "path";
+import { getSigner } from "../../utils";
+import { RECRD_PRIVATE_KEY } from "../../config";
 
 (async () => {
   try {
@@ -13,7 +15,7 @@ import { join } from "path";
     const userId = "ab12345";
     const username = "alina-chan";
     
-    const result = await profileModule.createAndShareProfile(userId, username);
+    const result = await profileModule.createAndShareProfile(userId, username, getSigner(RECRD_PRIVATE_KEY));
 
     // Write the profile ID to a temp file for use in other scripts
     writeFileSync(join(__dirname, '..', 'tempProfileId.txt'), result.objectId);

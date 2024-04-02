@@ -29,7 +29,7 @@ const errorCodeMessages = {
 
 export class ProfileModule {
   /// Create and share a profile
-  async createAndShareProfile(userId: string, username: string): Promise<SuiObjectChangeCreated> {
+  async createAndShareProfile(userId: string, username: string, signer: Signer): Promise<SuiObjectChangeCreated> {
     // Create a transaction block
     const txb = new TransactionBlock();
 
@@ -44,7 +44,6 @@ export class ProfileModule {
     });
 
     // Sign and execute the transaction as RECRD 
-    const signer = getSigner(RECRD_PRIVATE_KEY);
     const response = await executeTransaction({ txb, signer });
 
     // Check if the profile was created
@@ -65,7 +64,7 @@ export class ProfileModule {
   }
 
   /// Update profile based on a specific field
-  async updateProfile(profileId: string, updateType: ProfileUpdateType, newValue: number): Promise<Profile> {
+  async updateProfile(profileId: string, updateType: ProfileUpdateType, newValue: number, signer: Signer): Promise<Profile> {
     // Create a transaction block
     const txb = new TransactionBlock();
 
@@ -86,7 +85,6 @@ export class ProfileModule {
     });
 
     // Sign and execute the transaction
-    const signer = getSigner(RECRD_PRIVATE_KEY);
     const response = await executeTransaction({ txb, signer });
     
     // Check if the profile was updated successfully
@@ -173,7 +171,7 @@ export class ProfileModule {
   /// Authorize a user to access a profile with 
   /// 0 = BORROW_ACCESS or
   /// 1 = REMOVE_ACCESS
-  async authorizeUser(profileId: string, user: string, accessLevel: number): Promise<Profile> {
+  async authorizeUser(profileId: string, user: string, accessLevel: number, signer: Signer): Promise<Profile> {
     if (accessLevel < 0 || accessLevel > 1) {
       throw new Error("Invalid access level specified.");
     }
@@ -193,7 +191,6 @@ export class ProfileModule {
     });
 
     // Sign and execute the transaction
-    const signer = getSigner(RECRD_PRIVATE_KEY);
     const response = await executeTransaction({ txb, signer });
 
     // Return updated profile
