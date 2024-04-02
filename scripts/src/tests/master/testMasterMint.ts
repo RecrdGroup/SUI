@@ -3,6 +3,7 @@
 
 import { MasterModule, mintMasterParams } from "../../modules/MasterModule";
 import { ProfileModule } from "../../modules/ProfileModule";
+import { SALE_STATUS } from "../../config";
 
 (async () => {
   try {
@@ -23,7 +24,7 @@ import { ProfileModule } from "../../modules/ProfileModule";
       hashtags: ["test", "video"],
       creator_profile_id: profileRes.objectId,
       royalty_percentage_bp: 1000,
-      sale_status: 1,
+      sale_status: SALE_STATUS.STALE,
     };
 
     const result = await masterModule.mintMaster(mintMasterParams);

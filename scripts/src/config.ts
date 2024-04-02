@@ -24,9 +24,19 @@ export const suiClient = new SuiClient({
   url: SUI_NETWORK,
 });
 
-// Define moveCall targets for smart contracts
-export const BORROW_ACCESS = 0;
-export const REMOVE_ACCESS = 1;
+// Access level constants per contract
+export const ACCESS = {
+  BORROW: 0,
+  REMOVE: 1
+};
+
+// Sale status constants per contract
+export const SALE_STATUS = {
+  STALE: 0,
+  ON_SALE: 1,
+  SUSPENDED: 2,
+};
+
 export const VIDEO_TYPE = `${PACKAGE_ID}::master::Video`;
 export const AUDIO_TYPE = `${PACKAGE_ID}::master::Audio`;
 export const LOYALTY_FREE_URL =
