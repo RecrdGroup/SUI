@@ -48,3 +48,10 @@ export const getSuiAddress = (secretKey: string) => {
     const match = type.match(regex);
     return match ? match[1] : null;
   }
+
+  /// Get the <T> type of a MasterMetadata object
+  export const getMasterMetadataT = ( type: string ): string | null => {
+    const regex = /Metadata<(.+)>/;
+    const match = type.match(regex);
+    return match ? match[1] : null;
+  }

@@ -30,8 +30,9 @@ import { RECRD_PRIVATE_KEY } from "../../config";
 
     const result = await masterModule.mintMaster(mintMasterParams, getSigner(RECRD_PRIVATE_KEY));
 
-    // Write the Master ID to a temp file for use in other scripts
+    // Write the Master & Metadata IDs to a temp file for use in other scripts
     writeFileSync(join(__dirname, '..', 'tempMasterId.txt'), result.master?.objectId!);
+    writeFileSync(join(__dirname, '..', 'tempMasterMetadataId.txt'), result.metadata?.objectId!);
 
     console.log("Master minted successfully:", result);
   } catch (error) {

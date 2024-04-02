@@ -3,7 +3,7 @@
 
 import { SuiObjectChangeCreated } from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { executeTransaction, getMasterT } from "../utils";
+import { executeTransaction, getMasterT, getMasterMetadataT } from "../utils";
 import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
 import { SUI_FRAMEWORK_ADDRESS } from "@mysten/sui.js/utils";
 import { Master, MasterMetadata } from "../interfaces";
@@ -160,6 +160,31 @@ export class MasterModule {
       target: `${PACKAGE_ID}::master::admin_burn_master`,
       arguments: [ txb.object(ADMIN_CAP), txb.object(masterId) ],
       typeArguments: [ masterType! ],
+    });
+
+    // Sign and execute the transaction as the admin
+    await executeTransaction({ txb, signer });
+  }
+
+  /// Burn a Master Metadata object by its ID (admin only)
+  async burnMasterMetadata( metadataId: string, signer: Signer ): Promise<void> {
+    // Get the Master Metadata type 
+    const metadataRes = await suiClient.getObject({ 
+      id: metadataId,
+      options: { showContent: true }
+    });
+
+    const content: any = metadataRes.data?.content;
+    const metadataType = getMasterMetadataT(content.type);
+
+    // Create a transaction block
+    const txb = new TransactionBlock();
+
+    // Call the smart contract function to burn a Master Metadata object
+    txb.moveCall({
+      target: `${PACKAGE_ID}::master::admin_burn_metadata`,
+      arguments: [ txb.object(ADMIN_CAP), txb.object(metadataId) ],
+      typeArguments: [ metadataType! ],
     });
 
     // Sign and execute the transaction as the admin

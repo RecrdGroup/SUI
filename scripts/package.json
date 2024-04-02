@@ -13,7 +13,8 @@
     "testMasterMint": "ts-node src/tests/master/testMasterMint.ts",
     "testMasterReceiveAndBurn": "ts-node src/tests/master/testMasterReceiveAndBurn.ts",
     "testGetMaster": "ts-node src/tests/master/testGetMaster.ts",
-    "testGetMasterMetadata": "ts-node src/tests/master/testGetMasterMetadata.ts"
+    "testGetMasterMetadata": "ts-node src/tests/master/testGetMasterMetadata.ts",
+    "testMasterMetadataBurn": "ts-node src/tests/master/testMasterMetadataBurn.ts"
   },
   "author": "",
   "license": "ISC",
