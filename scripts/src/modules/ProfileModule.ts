@@ -197,6 +197,39 @@ export class ProfileModule {
     return this.getProfileById(profileId);
   }
 
+  /// Deauthorize a user from accessing a profile
+  async deauthorizeUser(profileId: string, user: string, signer: Signer): Promise<Profile> {
+    // Retrieve the profile to get the authorizations
+    let profile = await this.getProfileById(profileId);
+
+    // Create a transaction block
+    const txb = new TransactionBlock();
+
+    // Call the smart contract function to deauthorize a user
+    txb.moveCall({
+      target: `${PACKAGE_ID}::profile::deauthorize`,
+      arguments: [
+        txb.object(ADMIN_CAP),
+        txb.object(profileId),
+        txb.pure(user),
+      ],
+    });
+
+    // Sign and execute the transaction
+    const response = await executeTransaction({ txb, signer });
+
+    // Retrieve the updated profile after deauthorization
+    profile = await this.getProfileById(profileId);
+
+    // Check if the user is removed from the authorizations table 
+    if (profile.authorizations.has(user)) {
+      throw new Error("User was not deauthorized successfully.");
+    }
+
+    // Return updated profile
+    return profile;
+  }
+
   /// Buy Master from a profile and transfer to the buyer's profile
   async buyMaster(sellerProfile: string, masterId: string, buyerProfile: string, receiptId: string, signer: Signer): Promise<SuiTransactionBlockResponse> {
     // Get the Master type

@@ -8,6 +8,7 @@
     "start": "ts-node src/index",
     "testProfileCreate": "ts-node src/tests/profile/testProfileCreate.ts",
     "testProfileAuthorize": "ts-node src/tests/profile/testProfileAuthorize.ts",
+    "testProfileDeauthorize": "ts-node src/tests/profile/testProfileDeauthorize.ts",
     "testProfileUpdate": "ts-node src/tests/profile/testProfileUpdate.ts",
     "testProfileReceive": "ts-node src/tests/profile/testProfileReceive.ts",
     "testMasterMint": "ts-node src/tests/master/testMasterMint.ts",
