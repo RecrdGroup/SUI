@@ -23,8 +23,6 @@ fi
 
 PRIVATE_KEY=$(cat ~/.sui/sui_config/sui.keystore | jq -r '.[0]')
 
-switch_res=$(sui client switch --address ${ADMIN_ADDRESS})
-
 publish_res=$(sui client publish --skip-fetch-latest-git-deps --gas-budget 2000000000 --json ${MOVE_PACKAGE_PATH})
 
 echo ${publish_res} >.publish.res.json
