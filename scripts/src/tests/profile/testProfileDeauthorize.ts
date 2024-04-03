@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ProfileModule } from "../../modules/ProfileModule";
-import { USER_PRIVATE_KEY, ACCESS, RECRD_PRIVATE_KEY } from "../../config";
+import { USER_PRIVATE_KEY, RECRD_PRIVATE_KEY } from "../../config";
 import { getSuiAddress, getSigner } from "../../utils";
 import { readFileSync } from "fs";
 import { join } from "path";

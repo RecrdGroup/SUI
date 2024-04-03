@@ -181,6 +181,9 @@ module recrd::profile {
     // Validate the master id from the receipt and the master object
     assert!(object::id(&master) == master_id, EInvalidObject);
 
+    // Only masters with ON_SALE status can be bought
+    assert!(master::sale_status<T>(&master) == ON_SALE, EInvalidSaleStatus);
+
     // Update the sale status of the master object to STALE
     master::update_sale_status<T>(&mut master, STALE);
 
