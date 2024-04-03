@@ -1,7 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { SuiObjectChangeCreated } from "@mysten/sui.js/client";
+import { SuiObjectChangeCreated, SuiObjectRef } from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import { executeTransaction, getMasterT, getMasterMetadataT } from "../utils";
 import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
@@ -142,7 +142,7 @@ export class MasterModule {
   }
 
   /// Burn a Master object by its ID (admin only)
-  async burnMaster( masterId: string, signer: Signer ): Promise<void> {
+  async burnMaster( masterId: string, signer: Signer ): Promise<SuiObjectRef | undefined> {
     // Get the Master type 
     const masterRes = await suiClient.getObject({ 
       id: masterId,
@@ -163,11 +163,26 @@ export class MasterModule {
     });
 
     // Sign and execute the transaction as the admin
-    await executeTransaction({ txb, signer });
+    const res = await executeTransaction({ txb, signer });
+    
+    if (!res.effects?.deleted) {
+      throw new Error("No deleted objects were found in the SuiTransactionBlockResponse.");
+    }
+
+    // Find the deleted object in the response
+    let deletedObject = res.effects.deleted.find(deletedObject => deletedObject.objectId === masterId);
+    
+    if (!deletedObject) {
+      throw new Error("Master object could not be burned.");
+    }
+
+    console.log("Master burned successfully:", deletedObject);
+
+    return deletedObject;
   }
 
   /// Burn a Master Metadata object by its ID (admin only)
-  async burnMasterMetadata( metadataId: string, signer: Signer ): Promise<void> {
+  async burnMasterMetadata( metadataId: string, signer: Signer ): Promise<SuiObjectRef | undefined> {
     // Get the Master Metadata type 
     const metadataRes = await suiClient.getObject({ 
       id: metadataId,
@@ -188,6 +203,21 @@ export class MasterModule {
     });
 
     // Sign and execute the transaction as the admin
-    await executeTransaction({ txb, signer });
+    const res = await executeTransaction({ txb, signer });
+    
+    if (!res.effects?.deleted) {
+      throw new Error("No deleted objects were found in the SuiTransactionBlockResponse.");
+    }
+
+    // Find the deleted object in the response
+    let deletedObject = res.effects.deleted.find(deletedObject => deletedObject.objectId === metadataId);
+    
+    if (!deletedObject) {
+      throw new Error("Master Metadata object could not be burned.");
+    }
+
+    console.log("Metadata burned successfully:", deletedObject);
+
+    return deletedObject;
   }
 }

@@ -3,7 +3,6 @@
 
 import { RECRD_PRIVATE_KEY } from "../../config";
 import { MasterModule } from "../../modules/MasterModule";
-import { ProfileModule } from "../../modules/ProfileModule";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { getSigner } from "../../utils";
