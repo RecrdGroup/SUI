@@ -21,7 +21,8 @@ module recrd::master {
   use recrd::core::AdminCap;
 
   // === Friends ===
-
+  friend recrd::profile;
+  
   // === Errors ===
   const EHashtagDoesNotExist: u64 = 1;
   const EInvalidNewRevenueTotal: u64 = 2;
@@ -430,6 +431,13 @@ module recrd::master {
       sale_status == ON_SALE || sale_status == SUSPENDED || sale_status == STALE, 
       EInvalidSaleStatus
     );
+    update_sale_status<T>(master, sale_status);
+  }
+
+  public(friend) fun update_sale_status<T>(
+    master: &mut Master<T>,
+    sale_status: u8,
+  ) {
     master.sale_status = sale_status;
   }
 

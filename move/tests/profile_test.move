@@ -41,7 +41,7 @@ module recrd::profile_test {
         ts::next_tx(scenario, ADMIN);
         let ctx = ts::ctx(scenario);
         let admin_cap = core::mint_for_testing(ctx);
-        profile::authorize(&admin_cap, profile, user, role, ctx);
+        profile::authorize(&admin_cap, profile, user, role);
         core::burn_for_testing(admin_cap);
     }
 

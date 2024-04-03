@@ -41,8 +41,11 @@ module recrd::profile {
   // Allows to remove the item from the Profile without restrictions
   const REMOVE_ACCESS: u8 = 1; 
 
+  // Stale state is when the master is not on sale
+  const STALE: u8 = 0;
+  // On sale state is when the master is on sale
   const ON_SALE: u8 = 1;
-  // const SUSPENDED: u8 = 2;
+  // const SUSPENDED: u8 = 3;
 
   // === Structs ===
 
@@ -103,13 +106,18 @@ module recrd::profile {
 
   /// Admin authorizes user with level of access to the profile.
   public fun authorize(
-    _: &AdminCap, self: &mut Profile, user: address, access: u8, _ctx: &mut TxContext
+    _: &AdminCap, self: &mut Profile, user: address, access: u8
   ) {
     assert!(access == REMOVE_ACCESS || access == BORROW_ACCESS, EInvalidAccessOption);
-    // @TODO: decide if only admin can authorize or users of access x can also authorize with access x
-    // let sender_access = *table::borrow(&self.authorizations, tx_context::sender(ctx));
-    // assert!(sender_access == access, EInvalidAccessRights);
+    
     table::add(&mut self.authorizations, user, access);
+  }
+
+  /// Admin removes user's access to the profile.
+  public fun deauthorize(
+    _: &AdminCap, self: &mut Profile, user: address
+  ) {
+    table::remove(&mut self.authorizations, user);
   }
 
   #[allow(lint(self_transfer))]
@@ -129,8 +137,10 @@ module recrd::profile {
   public fun borrow_master<T: drop>(
     self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): (Master<T>, Promise) {
+    // Users with both BORROW_ACCESS and REMOVE_ACCESS can borrow the master
     assert!(
-      *table::borrow(&self.authorizations, tx_context::sender(ctx)) == BORROW_ACCESS, 
+      *table::borrow(&self.authorizations, tx_context::sender(ctx)) == BORROW_ACCESS ||
+      *table::borrow(&self.authorizations, tx_context::sender(ctx)) == REMOVE_ACCESS,
       EInvalidAccessRights
     );
 
@@ -145,7 +155,7 @@ module recrd::profile {
   }
 
   // Returns the master back to the profile
-  public fun return_master<T>(master: Master<T>, promise: Promise) {
+  public fun return_master<T: drop>(master: Master<T>, promise: Promise) {
     let Promise {master_id, profile} = promise;
     assert!(object::id(&master) == master_id, EInvalidObject);
     transfer::public_transfer(master, profile);
@@ -170,6 +180,9 @@ module recrd::profile {
 
     // Validate the master id from the receipt and the master object
     assert!(object::id(&master) == master_id, EInvalidObject);
+
+    // Update the sale status of the master object to STALE
+    master::update_sale_status<T>(&mut master, STALE);
 
     // Transfer the master to the buyer profile
     transfer::public_transfer(master, user_profile);
@@ -278,9 +291,7 @@ module recrd::profile {
   fun receive_master_<T: drop>(
     self: &mut Profile, master_to_receive: Receiving<Master<T>>
   ): Master<T> {
-    let master = transfer::public_receive<Master<T>>(&mut self.id, master_to_receive);
-    assert!(master::sale_status(&master) != ON_SALE, EInvalidSaleStatus);
-    master
+    transfer::public_receive<Master<T>>(&mut self.id, master_to_receive)
   }
 
   // === Test Only ===
