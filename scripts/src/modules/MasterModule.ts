@@ -90,6 +90,66 @@ export class MasterModule {
     return { master, metadata };
   }
 
+  /// Update the sale status of Master object that is owned by a Profile
+  async updateMasterSaleStatus( profileId: string, masterId: string, saleStatus: number, signer: Signer ): Promise<Master> {
+    // Get the Master type 
+    const masterRes = await suiClient.getObject({ 
+      id: masterId,
+      options: { showContent: true }
+    });
+
+    const content: any = masterRes.data?.content;
+    const masterType = getMasterT(content.type);
+    
+    // Create a transaction block
+    const txb = new TransactionBlock();
+
+    // First, we need to borrow the Master from the Profile
+    let [master, promise] = txb.moveCall({
+      target: `${PACKAGE_ID}::profile::borrow_master`,
+      arguments: [ 
+        txb.object(profileId), 
+        txb.object(masterId) 
+      ],
+      typeArguments: [ masterType! ],
+    });
+
+    // Update the sale status of the Master object
+    txb.moveCall({
+      target: `${PACKAGE_ID}::master::set_sale_status`,
+      arguments: [ 
+        txb.object(ADMIN_CAP),
+        master, 
+        txb.pure(saleStatus) 
+      ],
+      typeArguments: [ masterType! ],
+    });
+
+    // Return the updated Master object to the Profile and resolve the promise
+    txb.moveCall({
+      target: `${PACKAGE_ID}::profile::return_master`,
+      arguments: [ 
+        txb.object(master), 
+        promise 
+      ],
+      typeArguments: [ masterType! ],
+    });
+
+    // Sign and execute the transaction 
+    const res = await executeTransaction({ txb, signer });
+
+    // Check if the profile was updated successfully
+    let updatedMaster = res.objectChanges!.find(
+      (e) => e.type == 'mutated' && e.objectType.includes('Master'),
+    );
+
+    if (!updatedMaster || updatedMaster.type !== 'mutated') {
+      throw new Error("Master update failed.");
+    }
+
+    return await this.getMasterById(masterId);
+  }
+
   /// Query a Master object by its ID and return the object
   async getMasterById( masterId: string ): Promise<Master> {
     // Retrieve the Master object
