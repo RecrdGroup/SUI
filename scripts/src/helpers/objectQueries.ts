@@ -13,8 +13,6 @@ export const getObjectsByType = async (
   // return an empty array for non-address.
   if (!address) return Promise.resolve([]);
 
-  let objectsArray: any[] = [];
-
   let getObjectsQuery = {
     filter: { StructType: objectType },
     owner: address,
@@ -36,6 +34,8 @@ export const getObjectsByType = async (
     }
     
     return objectsArray.concat(nextPageData);
+  }).catch((error) => {
+    console.error("Error fetching owned objects:", error);
+    throw error;
   });
-
 };
