@@ -137,7 +137,7 @@ module recrd::profile {
   public fun borrow_master<T: drop>(
     self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): (Master<T>, Promise) {
-    // Users with both BORROW_ACCESS and REMOVE_ACCESS can borrow the master
+    // Users that have either BORROW_ACCESS or REMOVE_ACCESS can borrow the master
     assert!(
       *table::borrow(&self.authorizations, tx_context::sender(ctx)) == BORROW_ACCESS ||
       *table::borrow(&self.authorizations, tx_context::sender(ctx)) == REMOVE_ACCESS,
