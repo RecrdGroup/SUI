@@ -40,6 +40,8 @@ module recrd::profile {
   const DEFAULT_ACCESS: u8 = 100;
   // Allows to borrow with a hot potato, so it has to be returned
   const BORROW_ACCESS: u8 = 110; 
+  // Allows access for updating Profile (i.e. custodial wallets managed by RECRD)
+  const UPDATE_ACCESS: u8 = 120;
   // Allows to remove the item from the Profile without restrictions
   const REMOVE_ACCESS: u8 = 150;
   // Required level of access for admin gated access
@@ -86,21 +88,20 @@ module recrd::profile {
 	  commission_revenue: u64
   }
 
-  // Profile capability for users to declare ownership of Profile. 
-  struct ProfileCap has key, store {
+  // Profile identity for users to link their account to their Profile. 
+  struct Identity has key, store {
     id: UID,
     profile: ID,
-    access: u8,
   }
 
   // === Public Functions ===
 
-  /// Creates a new `Profile` object and a new `ProfileCap` for the user.
-  /// `Profile` will be publicly shared and `ProfileCap` will be returned, so 
+  /// Creates a new `Profile` object and a new `Identity` for the user.
+  /// `Profile` will be publicly shared and `Identity` will be returned, so 
   /// that it can be transferred via PTBs.
   public fun new(
     _: &AdminCap, user_id: String, username: String, ctx: &mut TxContext,
-  ): ProfileCap {
+  ): Identity {
     let profile = Profile {
       id: object::new(ctx),
       user_id,
@@ -121,7 +122,14 @@ module recrd::profile {
     transfer::public_share_object(profile);
 
     // Give the user borrow access by default.
-    new_cap_(profile_id, BORROW_ACCESS, ctx)
+    new_cap_(profile_id, ctx)
+  }
+
+  /// Admin can send more Identitys to users that have existing Profile. 
+  public fun new_cap(
+    _: &AdminCap, profile: &Profile, ctx: &mut TxContext
+  ): Identity {
+    new_cap_(*object::uid_as_inner(&profile.id), ctx)
   }
 
   /// Admin authorizes user with level of access to the profile.
@@ -358,15 +366,11 @@ module recrd::profile {
     transfer::public_receive<Master<T>>(&mut self.id, master_to_receive)
   }
 
-  /// Creates and returns a new ProfileCap object. 
-  fun new_cap_(profile_id: ID, access: u8, ctx: &mut TxContext): ProfileCap {
-    // Check whether given access is within the range
-    assert!(access >= 0 && access <= 250, EAccessLevelOutOfRange);
-
-    ProfileCap {
+  /// Creates and returns a new Identity object. 
+  fun new_cap_(profile_id: ID, ctx: &mut TxContext): Identity {
+    Identity {
       id: object::new(ctx),
-      profile: profile_id, 
-      access
+      profile: profile_id,
     }
   }
 

@@ -11,7 +11,7 @@ module recrd::profile_test {
     use sui::object::{Self, ID};
 
     use recrd::core::{Self};
-    use recrd::profile::{Self, Profile, ProfileCap, EAccessLevelOutOfRange, ENewValueShouldBeHigher, ENoEntryFound};
+    use recrd::profile::{Self, Profile, Identity, EAccessLevelOutOfRange, ENewValueShouldBeHigher, ENoEntryFound};
     use recrd::master::{Self, Master, Video};
 
     // === Constants ===
@@ -98,10 +98,10 @@ module recrd::profile_test {
             ts::return_shared(profile);
         };
 
-        // --- Check the user has received the ProfileCap --- 
+        // --- Check the user has received the Identity --- 
         ts::next_tx(&mut scenario, USER);
         {
-            let profile_cap = ts::take_from_sender<ProfileCap>(&scenario);
+            let profile_cap = ts::take_from_sender<Identity>(&scenario);
             ts::return_to_sender(&scenario, profile_cap);
         };
 

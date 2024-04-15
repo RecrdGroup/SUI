@@ -32,10 +32,12 @@ module recrd::core {
   }
 
   /// Global registry object to keep track of current package version. 
+  /// This allows or disables the issuance of new receipts.
+  /// Allowed as long as Registry and VERSION are equal. 
+  /// Not allowed if Registry has not been bumped to VERSION.
   struct Registry has key {
     id: UID,
     version: u64,
-
   }
 
   /// One-time-function that runs when the contract is deployed.
