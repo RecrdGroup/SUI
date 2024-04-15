@@ -1,25 +1,21 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
-
+#[allow(unused_const)]
 /// All users on `RECRD app will have a `Profile` object (registered and anonymous).
-/// The user `Profile` object will include user related metadata, such as:
-/// - User ID (we are considering to hash this information)
-/// - Username (for registered users).
-/// - Other metadata for user (TODO: What other meta do we want to store on-chain for user profile?)
-/// - DAW related fields:
-/// -- Static field for total time watched in seconds.
-/// -- 1-1 dynamic field for every video the user has watched (TODO: to be considered)
+/// The user `Profile` object will include user related metadata. 
+/// Each user will also receive a unique capability object under their accounts in 
+/// order to maintain a two-way relationship between all the user accounts and 
+/// their profiles.
 module recrd::profile {
 
   // === Imports ===
-
   use sui::tx_context::{Self, TxContext};
   use sui::object::{Self, UID, ID};
   use sui::transfer::{Self, Receiving};
   use sui::table::{Self, Table};
-
   use std::string::{String};
 
+  // === Package dependencies ===
   use recrd::core::AdminCap;
   use recrd::master::{Self, Master};
   use recrd::receipt::{Self, Receipt};
@@ -31,21 +27,30 @@ module recrd::profile {
   const EInvalidSaleStatus: u64 = 1;
   const EInvalidAccessRights: u64 = 2;
   const EInvalidObject: u64 = 3;
-  const EInvalidAccessOption: u64 = 4;
+  const EAccessLevelOutOfRange: u64 = 4;
   const ENoEntryFound: u64 = 5;
+  const ENotAuthorized: u64 = 6;
+  const EAccessLevelOutOfBounds: u64 = 7;
 
   // === Constants ===
 
+  // Levelling will be facilitated in the range [0, 255] and
+  // the default levels will be set to mid ranges so that we can 
+  // increase and decrease level of access by 10.
+  const DEFAULT_ACCESS: u8 = 100;
   // Allows to borrow with a hot potato, so it has to be returned
-  const BORROW_ACCESS: u8 = 0; 
+  const BORROW_ACCESS: u8 = 110; 
   // Allows to remove the item from the Profile without restrictions
-  const REMOVE_ACCESS: u8 = 1; 
+  const REMOVE_ACCESS: u8 = 150;
+  // Required level of access for admin gated access
+  const ADMIN_ACCESS: u8 = 200;
 
   // Stale state is when the master is not on sale
   const STALE: u8 = 0;
   // On sale state is when the master is on sale
   const ON_SALE: u8 = 1;
-  // const SUSPENDED: u8 = 3;
+  // Admin enforced state when rules are not met
+  const SUSPENDED: u8 = 3;
 
   // === Structs ===
 
@@ -63,7 +68,7 @@ module recrd::profile {
     // type pending to decide the hashing approach
     username: String,
     // Keep a record of each user's address + RECRD address
-	  // in the format of a pair <address, REMOVE_ACCESS | BORROW_ACCESS>
+	  // in the format of a pair <address, Access Level [0,250]>
     authorizations: Table<address, u8>,
     // total time the user has spent on watching videos
     watch_time: u64, // in seconds
@@ -81,36 +86,52 @@ module recrd::profile {
 	  commission_revenue: u64
   }
 
+  // Profile capability for users to declare ownership of Profile. 
+  struct ProfileCap has key, store {
+    id: UID,
+    profile: ID,
+    access: u8,
+  }
+
   // === Public Functions ===
 
-  /// Creates a new `Profile` object and makes it a shared object.
-  public fun create_and_share(
+  /// Creates a new `Profile` object and a new `ProfileCap` for the user.
+  /// `Profile` will be publicly shared and `ProfileCap` will be returned, so 
+  /// that it can be transferred via PTBs.
+  public fun new(
     _: &AdminCap, user_id: String, username: String, ctx: &mut TxContext,
-  ) {
-    transfer::public_share_object(
-      Profile {
-        id: object::new(ctx),
-        user_id,
-        username,
-        authorizations: table::new(ctx),
-        watch_time: 0, // initial watch time is zero
-        videos_watched: 0,
-        adverts_watched: 0,
-        number_of_followers: 0,
-        number_of_following: 0,
-        ad_revenue: 0,
-        commission_revenue: 0,
-      }
-    );
+  ): ProfileCap {
+    let profile = Profile {
+      id: object::new(ctx),
+      user_id,
+      username,
+      authorizations: table::new(ctx),
+      watch_time: 0, // initial watch time is zero
+      videos_watched: 0,
+      adverts_watched: 0,
+      number_of_followers: 0,
+      number_of_following: 0,
+      ad_revenue: 0,
+      commission_revenue: 0,
+    };
+
+    let profile_id = *object::uid_as_inner(&profile.id);
+
+    // Make `Profile` a shared object. 
+    transfer::public_share_object(profile);
+
+    // Give the user borrow access by default.
+    new_cap_(profile_id, BORROW_ACCESS, ctx)
   }
 
   /// Admin authorizes user with level of access to the profile.
   public fun authorize(
-    _: &AdminCap, self: &mut Profile, user: address, access: u8
+    _: &AdminCap, self: &mut Profile, addr: address, access: u8
   ) {
-    assert!(access == REMOVE_ACCESS || access == BORROW_ACCESS, EInvalidAccessOption);
+    // Users access level should be in the range of (0, 200)
+    assert!(access > 0 && access < ADMIN_ACCESS, EAccessLevelOutOfRange);
     
-    table::add(&mut self.authorizations, user, access);
+    table::add(&mut self.authorizations, addr, access);
   }
 
   /// Admin removes user's access to the profile.
@@ -120,27 +141,26 @@ module recrd::profile {
     table::remove(&mut self.authorizations, user);
   }
 
-  #[allow(lint(self_transfer))]
-  /// Receives Master<T> iff sender is in the authorizations table with REMOVE_ACCESS.
-  public fun receive_master<T: drop>(
-    self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
-  ): Master<T> {
-    assert!(
-      *table::borrow(&self.authorizations, tx_context::sender(ctx)) == REMOVE_ACCESS,
-      EInvalidAccessRights
-    );
-
-    receive_master_<T>(self, master)
+  /// Admin can receive any `T` object from `Profile`.
+  public fun admin_receive<T: key + store>(
+    _:&AdminCap, self: &mut Profile, object: Receiving<T>
+  ): T {
+    transfer::public_receive<T>(&mut self.id, object)
   }
 
   /// Borrows Master<T> temporarily with a Promise to return it back. 
   public fun borrow_master<T: drop>(
     self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): (Master<T>, Promise) {
-    // Users that have either BORROW_ACCESS or REMOVE_ACCESS can borrow the master
+    // Check whether sender exists in authorization table. 
     assert!(
-      *table::borrow(&self.authorizations, tx_context::sender(ctx)) == BORROW_ACCESS ||
-      *table::borrow(&self.authorizations, tx_context::sender(ctx)) == REMOVE_ACCESS,
+      table::contains(&self.authorizations, tx_context::sender(ctx)), 
+      ENotAuthorized
+    );
+
+    // Users that have access above the BORROW_ACCESS threshold can borrow the master
+    assert!(
+      *table::borrow(&self.authorizations, tx_context::sender(ctx)) >= BORROW_ACCESS,
       EInvalidAccessRights
     );
 
@@ -154,7 +174,7 @@ module recrd::profile {
     (master, promise)
   }
 
-  // Returns the master back to the profile
+  /// Returns the master back to the profile
   public fun return_master<T: drop>(master: Master<T>, promise: Promise) {
     let Promise {master_id, profile} = promise;
     assert!(object::id(&master) == master_id, EInvalidObject);
@@ -247,6 +267,12 @@ module recrd::profile {
     self.commission_revenue = new_commission_revenue;
   }
 
+  public fun update_authorization(
+    _: &AdminCap, self: &mut Profile, addr: address, new_access: u8
+  ) {
+    update_authorization_(self, addr, new_access);
+  }
+
   // === Accessors ===
 
   public fun user_id(self: &Profile): String {
@@ -295,6 +321,30 @@ module recrd::profile {
     self: &mut Profile, master_to_receive: Receiving<Master<T>>
   ): Master<T> {
     transfer::public_receive<Master<T>>(&mut self.id, master_to_receive)
+  }
+
+  /// Creates and returns a new ProfileCap object. 
+  fun new_cap_(profile_id: ID, access: u8, ctx: &mut TxContext): ProfileCap {
+    // Check whether given access is within the range
+    assert!(access >= 0 && access <= 250, EAccessLevelOutOfRange);
+
+    ProfileCap {
+      id: object::new(ctx),
+      profile: profile_id, 
+      access
+    }
+  }
+
+  /// Updates the access level of given address in the `Profile` authorization table.
+  fun update_authorization_(self: &mut Profile, addr: address, new_access: u8) {
+    // Make sure the new access level is within the allowed range. 
+    assert!(new_access >= 0 && new_access <= 250, EAccessLevelOutOfRange);
+
+    // Check whether given address exists in authorization table. 
+    assert!(table::contains(&self.authorizations, addr), ENotAuthorized);
+
+    let current_access = table::borrow_mut(&mut self.authorizations, addr);
+    *current_access = new_access;
   }
 
   // === Test Only ===

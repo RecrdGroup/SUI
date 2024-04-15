@@ -11,7 +11,7 @@ module recrd::profile_test {
     use sui::object::{Self, ID};
 
     use recrd::core::{Self};
-    use recrd::profile::{Self, Profile, EInvalidAccessOption, ENewValueShouldBeHigher, ENoEntryFound};
+    use recrd::profile::{Self, Profile, ProfileCap, EAccessLevelOutOfRange, ENewValueShouldBeHigher, ENoEntryFound};
     use recrd::master::{Self, Master, Video};
 
     // === Constants ===
@@ -20,6 +20,7 @@ module recrd::profile_test {
     const USER_PROFILE: address = @0xC0FFEE;
     const USER_ROYALTY_BP: u16 = 1_000;
     const ADMIN: address = @0xDECAF;
+    const USER: address = @0xB00;
     const ON_SALE: u8 = 1;
 
     // === Errors ===
@@ -33,7 +34,8 @@ module recrd::profile_test {
         ts::next_tx(scenario, ADMIN);
         let ctx = ts::ctx(scenario);
         let admin_cap = core::mint_for_testing(ctx);
-        profile::create_and_share(&admin_cap, utf8(USER_ID), utf8(USERNAME), ctx);
+        let profile_cap = profile::new(&admin_cap, utf8(USER_ID), utf8(USERNAME), ctx);
+        transfer::public_transfer(profile_cap, USER);
         core::burn_for_testing(admin_cap);
     }
 
@@ -75,12 +77,10 @@ module recrd::profile_test {
     #[test]
     public fun mints_profile() {
         let scenario = ts::begin(ADMIN);
-        let test = &mut scenario;
-
-        create_profile(test);
+        create_profile(&mut scenario);
 
         // --- Check the Profile state ---
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, ADMIN);
         {
             let profile = ts::take_shared<Profile>(&scenario);
             assert!(profile::username(&profile) == utf8(USERNAME), EInvalidFieldValue);
@@ -96,6 +96,13 @@ module recrd::profile_test {
             assert!(profile::ad_revenue(&profile) == 0, EInvalidFieldValue);
             assert!(profile::commission_revenue(&profile) == 0, EInvalidFieldValue);
             ts::return_shared(profile);
+        };
+
+        // --- Check the user has received the ProfileCap --- 
+        ts::next_tx(&mut scenario, USER);
+        {
+            let profile_cap = ts::take_from_sender<ProfileCap>(&scenario);
+            ts::return_to_sender(&scenario, profile_cap);
         };
 
         ts::end(scenario);
@@ -115,9 +122,9 @@ module recrd::profile_test {
         ts::next_tx(test, ADMIN);
         {
             let profile = ts::take_shared<Profile>(test);
-            authorize_user(test, &mut profile, USER_PROFILE, 0);
+            authorize_user(test, &mut profile, USER_PROFILE, 100);
             let user_access = profile::access_rights(&profile, USER_PROFILE);
-            assert!(user_access == 0, EInvalidAccessRights);
+            assert!(user_access == 100, EInvalidAccessRights);
             ts::return_shared(profile);
         };
 
@@ -211,7 +218,7 @@ module recrd::profile_test {
 
     // === Expected failures ===
     #[test]
-    #[expected_failure(abort_code = EInvalidAccessOption)]
+    #[expected_failure(abort_code = EAccessLevelOutOfRange)]
     public fun admin_authorizes_address_with_invalid_u8(){
         let scenario = ts::begin(ADMIN);
         let test = &mut scenario;
@@ -222,8 +229,7 @@ module recrd::profile_test {
         ts::next_tx(test, ADMIN);
         {
             let profile = ts::take_shared<Profile>(test);
-            // Only 0 & 1 are allowed
-            authorize_user(test, &mut profile, USER_PROFILE, 2);
+            authorize_user(test, &mut profile, USER_PROFILE, 0);
             ts::return_shared(profile);
         };
 
