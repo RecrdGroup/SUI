@@ -6,10 +6,13 @@ module recrd::receipt {
     use sui::object::{Self, UID, ID};
     use sui::transfer::{Self, Receiving};
     use sui::tx_context::TxContext;
-    use recrd::core::AdminCap;
+    use recrd::core::{Self, AdminCap, Registry};
 
     // === Friends ===
     friend recrd::profile;
+
+    // === Errors ===
+    const EWrongVersion: u64 = 1;
 
     // === Structs ===
     struct Receipt has key {
@@ -23,7 +26,10 @@ module recrd::receipt {
     /// We include the `master_id` to allow the user to move the `Master<T>` object to another profile.
     /// The `user_profile` is the Profile address of the user who made the purchase.
     /// We include the `user_profile` so that `Master<T>` is transferred to the correct profile.
-    public fun new( _: &AdminCap, master_id: ID, profile: address, ctx: &mut TxContext) {
+    public fun new( _: &AdminCap, master_id: ID, profile: address, registry: &Registry, ctx: &mut TxContext) {
+        // Don't allow the issuance of new receipts if the package version has changed.
+        assert!(core::is_valid_version(registry), EWrongVersion);
+
         transfer::transfer(Receipt {
             id: object::new(ctx),
             master_id,

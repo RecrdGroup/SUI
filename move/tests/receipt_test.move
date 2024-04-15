@@ -19,21 +19,27 @@ module recrd::receipt_test {
     #[test]
     public fun mints_and_burns_receipt() {
         let scenario = ts::begin(ADMIN);
-        let test = &mut scenario;
-        let ctx = ts::ctx(test);
-        let admin_cap = core::mint_for_testing(ctx);
+        core::init_for_testing(ts::ctx(&mut scenario));
+        let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
         // Admin creates a new receipt for user
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, ADMIN);
         {
-            let ctx = ts::ctx(test);
-            receipt::new(&admin_cap, object::id_from_address(MASTER_ID), USER, ctx);
+            let registry = ts::take_shared<core::Registry>(&scenario);
+            receipt::new(
+                &admin_cap, 
+                object::id_from_address(MASTER_ID), 
+                USER, 
+                &registry, 
+                ts::ctx(&mut scenario)
+            );
+            ts::return_shared(registry);
         };
 
         // User burns the receipt
-        ts::next_tx(test, USER);
+        ts::next_tx(&mut scenario, USER);
         {
-            let receipt = ts::take_from_sender<Receipt>(test);
+            let receipt = ts::take_from_sender<Receipt>(&scenario);
             let (id, address) = receipt::burn(receipt);
             assert!(id == object::id_from_address(MASTER_ID), EInvalidMasterId);
             assert!(address == USER, EInvalidMasterId);
