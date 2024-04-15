@@ -39,10 +39,19 @@ module recrd::core {
 
   // === Admin Functions ===
 
+  /// Mints and returns a new `AdminCap` object. 
+  /// Requires an AdminCap for authentication.
   public fun admin_new_cap(_: &AdminCap, ctx: &mut TxContext): AdminCap {
     AdminCap {
       id: object::new(ctx)
     }
+  }
+
+  /// Burns the `AdminCap` object.
+  /// Requires two `AdminCap` objects to make sure that admin access is not lost.
+  public fun admin_burn_cap(cap: AdminCap) {
+    let AdminCap { id } = cap;
+    object::delete(id);
   }
 
   // === Test Only ===
