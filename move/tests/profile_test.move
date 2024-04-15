@@ -178,21 +178,20 @@ module recrd::profile_test {
     #[test]
     public fun admin_updates_profile_fields() {
         let scenario = ts::begin(ADMIN);
-        let test = &mut scenario;
 
-        create_profile(test);
+        create_profile(&mut scenario);
 
         // --- Update the profile fields ---
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(test);
-            let ctx = ts::ctx(test);
-            let admin_cap = core::mint_for_testing(ctx);
-            profile::update_watch_time(&admin_cap, &mut profile, 10);
-            profile::update_videos_watched(&admin_cap, &mut profile, 20); 
-            profile::update_adverts_watched(&admin_cap, &mut profile, 30);
-            profile::update_number_of_followers(&admin_cap, &mut profile, 40);
-            profile::update_number_of_following(&admin_cap, &mut profile, 50);
+            let profile = ts::take_shared<Profile>(&scenario);
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::authorize(&admin_cap, &mut profile, ADMIN, 200);
+            profile::update_watch_time(&mut profile, 10, ts::ctx(&mut scenario));
+            profile::update_videos_watched(&mut profile, 20, ts::ctx(&mut scenario)); 
+            profile::update_adverts_watched(&mut profile, 30, ts::ctx(&mut scenario));
+            profile::update_number_of_followers(&mut profile, 40, ts::ctx(&mut scenario));
+            profile::update_number_of_following(&mut profile, 50, ts::ctx(&mut scenario));
             profile::update_ad_revenue(&admin_cap, &mut profile, 60);
             profile::update_commission_revenue(&admin_cap, &mut profile, 70);
             core::burn_for_testing(admin_cap);
@@ -200,9 +199,9 @@ module recrd::profile_test {
         };
 
         // --- Check the Profile state ---
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(test);
+            let profile = ts::take_shared<Profile>(&scenario);
             assert!(profile::watch_time(&profile) == 10, EInvalidFieldValue);
             assert!(profile::videos_watched(&profile) == 20, EInvalidFieldValue);
             assert!(profile::adverts_watched(&profile) == 30, EInvalidFieldValue);
@@ -238,21 +237,25 @@ module recrd::profile_test {
 
     #[test]
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
-    public fun admin_updates_watch_time_with_invalid_value() {
+    public fun updates_watch_time_with_invalid_value() {
         let scenario = ts::begin(ADMIN);
-        let test = &mut scenario;
 
-        create_profile(test);
+        create_profile(&mut scenario);
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::authorize(&admin_cap, &mut profile, USER, 120);
+            core::burn_for_testing(admin_cap);
+            ts::return_shared(profile);
+        };
 
         // --- Update the profile watch time with an invalid value ---
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, USER);
         {
-            let profile = ts::take_shared<Profile>(test);
-            let ctx = ts::ctx(test);
-            let admin_cap = core::mint_for_testing(ctx);
+            let profile = ts::take_shared<Profile>(&scenario);
             // The new value should be higher than the current one
-            profile::update_watch_time(&admin_cap, &mut profile, 0);
-            core::burn_for_testing(admin_cap);
+            profile::update_watch_time(&mut profile, 0, ts::ctx(&mut scenario));
             ts::return_shared(profile);
         };
 
@@ -261,21 +264,25 @@ module recrd::profile_test {
 
     #[test]
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
-    public fun admin_updates_videos_watched_with_invalid_value() {
+    public fun updates_videos_watched_with_invalid_value() {
         let scenario = ts::begin(ADMIN);
-        let test = &mut scenario;
 
-        create_profile(test);
+        create_profile(&mut scenario);
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::authorize(&admin_cap, &mut profile, USER, 120);
+            core::burn_for_testing(admin_cap);
+            ts::return_shared(profile);
+        };
 
         // --- Update the profile watched videos with an invalid value ---
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, USER);
         {
-            let profile = ts::take_shared<Profile>(test);
-            let ctx = ts::ctx(test);
-            let admin_cap = core::mint_for_testing(ctx);
+            let profile = ts::take_shared<Profile>(&scenario);
             // The new value should be higher than the current one
-            profile::update_videos_watched(&admin_cap, &mut profile, 0);
-            core::burn_for_testing(admin_cap);
+            profile::update_videos_watched(&mut profile, 0, ts::ctx(&mut scenario));
             ts::return_shared(profile);
         };
 
@@ -284,21 +291,25 @@ module recrd::profile_test {
 
     #[test]
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
-    public fun admin_updates_adverts_watched_with_invalid_value() {
+    public fun updates_adverts_watched_with_invalid_value() {
         let scenario = ts::begin(ADMIN);
-        let test = &mut scenario;
 
-        create_profile(test);
+        create_profile(&mut scenario);
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::authorize(&admin_cap, &mut profile, USER, 120);
+            core::burn_for_testing(admin_cap);
+            ts::return_shared(profile);
+        };
 
         // --- Update the profile watched adverts with an invalid value ---
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, USER);
         {
-            let profile = ts::take_shared<Profile>(test);
-            let ctx = ts::ctx(test);
-            let admin_cap = core::mint_for_testing(ctx);
+            let profile = ts::take_shared<Profile>(&scenario);
             // The new value should be higher than the current one
-            profile::update_adverts_watched(&admin_cap, &mut profile, 0);
-            core::burn_for_testing(admin_cap);
+            profile::update_adverts_watched(&mut profile, 0, ts::ctx(&mut scenario));
             ts::return_shared(profile);
         };
 
@@ -309,16 +320,24 @@ module recrd::profile_test {
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
     public fun admin_updates_ad_revenue_with_invalid_value() {
         let scenario = ts::begin(ADMIN);
-        let test = &mut scenario;
 
-        create_profile(test);
+        create_profile(&mut scenario);
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::authorize(&admin_cap, &mut profile, USER, 120);
+            core::burn_for_testing(admin_cap);
+            ts::return_shared(profile);
+        };
 
         // --- Update the profile ad revenue with an invalid value ---
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(test);
-            let ctx = ts::ctx(test);
-            let admin_cap = core::mint_for_testing(ctx);
+            let profile = ts::take_shared<Profile>(&scenario);
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::authorize(&admin_cap, &mut profile, ADMIN, 200);
+            
             // The new value should be higher than the current one
             profile::update_ad_revenue(&admin_cap, &mut profile, 0);
             core::burn_for_testing(admin_cap);

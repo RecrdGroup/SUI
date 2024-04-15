@@ -129,7 +129,7 @@ module recrd::profile {
     _: &AdminCap, self: &mut Profile, addr: address, access: u8
   ) {
     // Users access level should be in the range of (0, 200)
-    assert!(access > 0 && access < ADMIN_ACCESS, EAccessLevelOutOfRange);
+    assert!(access > 0 && access <= 250, EAccessLevelOutOfRange);
     
     table::add(&mut self.authorizations, addr, access);
   }
@@ -214,45 +214,78 @@ module recrd::profile {
 
   // === Update functions ===
 
-  // @TODO: (note) Assumption that the user id & username do not change 
+  // Admin can update the user ID. 
+  public fun update_user_id(_: &AdminCap, self: &mut Profile, new_user_id: String) {
+    self.user_id = new_user_id;
+  }
 
+  // Authorized addresses can update username.
+  public fun update_username(self: &mut Profile, new_username: String, ctx: &mut TxContext) {
+    // Only addresses in the authorizations table can update.
+    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+    self.username = new_username
+  }
+
+  // Authorized addresses can update watch time.
   public fun update_watch_time(
-    _: &AdminCap, self: &mut Profile, new_watch_time: u64,
+    self: &mut Profile, new_watch_time: u64, ctx: &mut TxContext
   ) {
+    // Only addresses in the authorizations table can update.
+    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+
     // Make sure the watch_time is greater than the current watch_time.
     assert!(new_watch_time > self.watch_time, ENewValueShouldBeHigher);
 
     self.watch_time = new_watch_time;
   }
 
+  // Authorized addresses can update number of videos watched. 
   public fun update_videos_watched(
-    _: &AdminCap, self: &mut Profile, new_videos_watched: u64,
+    self: &mut Profile, new_videos_watched: u64, ctx: &mut TxContext
   ) {
+    // Only addresses in the authorizations table can update.
+    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+
+    // New number of videos watched should greater than current.
     assert!(new_videos_watched > self.videos_watched, ENewValueShouldBeHigher);
+
     self.videos_watched = new_videos_watched;
   }
 
+  // Authorized addresses can update number of adverts watched. 
   public fun update_adverts_watched(
-    _: &AdminCap, self: &mut Profile, new_adverts_watched: u64,
+    self: &mut Profile, new_adverts_watched: u64, ctx: &mut TxContext
   ) {
+    // Only addresses in the authorizations table can update.
+    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+
+    // New number of adverts watched should greater than current. 
     assert!(new_adverts_watched > self.adverts_watched, ENewValueShouldBeHigher);
+
     self.adverts_watched = new_adverts_watched;
   }
 
-  public fun update_number_of_followers(
-    _: &AdminCap,
-    self: &mut Profile,
-    new_number_of_followers: u64,
+  // Authorized addresses can update number of followers.
+  public fun update_number_of_followers( 
+    self: &mut Profile, new_number_of_followers: u64, ctx: &mut TxContext
   ) {
+    // Only addresses in the authorizations table can update.
+    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+
     self.number_of_followers = new_number_of_followers;
   }
 
+  // Authorized addresses can update number of following users.
   public fun update_number_of_following(
-    _: &AdminCap, self: &mut Profile, new_number_of_following: u64,
+    self: &mut Profile, new_number_of_following: u64, ctx: &mut TxContext
   ) {
+    // Only addresses in the authorizations table can update.
+    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+
     self.number_of_following = new_number_of_following;
   }
 
+  // Admin can update the ad revenue.
   public fun update_ad_revenue(
     _: &AdminCap, self: &mut Profile, new_ad_revenue: u64,
   ) {
@@ -260,6 +293,7 @@ module recrd::profile {
     self.ad_revenue = new_ad_revenue;
   }
 
+  // Admin can update the commission revenue.
   public fun update_commission_revenue(
     _: &AdminCap, self: &mut Profile, new_commission_revenue: u64,
   ) {
@@ -267,6 +301,7 @@ module recrd::profile {
     self.commission_revenue = new_commission_revenue;
   }
 
+  // Admin can update the authorization table.
   public fun update_authorization(
     _: &AdminCap, self: &mut Profile, addr: address, new_access: u8
   ) {
