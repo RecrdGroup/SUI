@@ -2,7 +2,9 @@
 module recrd::core_test {
     // === Imports ===
     use sui::test_scenario::{Self as ts};
+    use sui::package::{Publisher};
     use recrd::core::{Self, AdminCap}; 
+    use recrd::master;
 
     // === Constants ===
     const ADMIN: address = @0xDECAF;
@@ -31,13 +33,16 @@ module recrd::core_test {
         let scenario = ts::begin(ADMIN);
 
         core::init_for_testing(ts::ctx(&mut scenario));
-  
+        master::init_for_testing(ts::ctx(&mut scenario));
+
         ts::next_tx(&mut scenario, ADMIN);
         {
             let admin_cap = ts::take_from_sender<AdminCap>(&scenario);
-            let new_admin_cap = core::admin_new_cap(&admin_cap, ts::ctx(&mut scenario));
+            let publisher = ts::take_from_sender<Publisher>(&scenario);
+            let new_admin_cap = core::admin_new_cap(&publisher, ts::ctx(&mut scenario));
             core::burn_for_testing(new_admin_cap);
             ts::return_to_sender(&scenario, admin_cap);
+            ts::return_to_sender(&scenario, publisher);
         };
 
         ts::end(scenario);

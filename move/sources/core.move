@@ -11,11 +11,13 @@ module recrd::core {
   use sui::object::{Self, UID};
   use sui::tx_context::{Self, TxContext};
   use sui::transfer;
+  use sui::package::{Self, Publisher};
 
   // === Friends ===
 
   // === Errors ===
   const EWrongVersion: u64 = 0;
+  const EWrongPublisher: u64 = 1;
 
   // === Constants ===
 
@@ -33,6 +35,7 @@ module recrd::core {
   struct Registry has key {
     id: UID,
     version: u64,
+
   }
 
   /// One-time-function that runs when the contract is deployed.
@@ -58,15 +61,17 @@ module recrd::core {
   // === Admin Functions ===
 
   /// Mints and returns a new `AdminCap` object. 
-  /// Requires an AdminCap for authentication.
-  public fun admin_new_cap(_: &AdminCap, ctx: &mut TxContext): AdminCap {
+  /// Requires Publisher for authentication.
+  public fun admin_new_cap(publisher: &Publisher, ctx: &mut TxContext): AdminCap {
+    // Make sure the publisher corresponds to the package that creates AdminCap.
+    assert!(package::from_package<AdminCap>(publisher), EWrongPublisher);
+
     AdminCap {
       id: object::new(ctx)
     }
   }
 
   /// Burns the `AdminCap` object.
-  /// Requires two `AdminCap` objects to make sure that admin access is not lost.
   public fun admin_burn_cap(cap: AdminCap) {
     let AdminCap { id } = cap;
     object::delete(id);
