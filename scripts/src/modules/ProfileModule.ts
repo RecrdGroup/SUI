@@ -288,7 +288,7 @@ export class ProfileModule {
     return response;
   }
 
-  /// Receive Master from a profile if sender is authorized with REMOVE_ACCESS (1)
+  /// Receive Master from a profile if sender is authorized with REMOVE_ACCESS
   async receiveMaster(profileId: string, masterId: string, signer: Signer) {
     // Get the Master type
     const masterRes = await suiClient.getObject({
@@ -304,9 +304,13 @@ export class ProfileModule {
 
     // Call the smart contract function to receive a Master object
     let master = txb.moveCall({
-      target: `${PACKAGE_ID}::profile::receive_master`,
-      arguments: [txb.object(profileId), txb.object(masterId)],
-      typeArguments: [masterType!],
+      target: `${PACKAGE_ID}::profile::admin_receive`,
+      arguments: [
+        txb.object(ADMIN_CAP),
+        txb.object(profileId),
+        txb.object(masterId),
+      ],
+      typeArguments: [`${PACKAGE_ID}::master::Master<${masterType}>`],
     });
 
     // Get the Sui address of the signer

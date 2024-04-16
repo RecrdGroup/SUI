@@ -22,13 +22,13 @@ import { getSigner } from "../../utils";
     });
 
     // Profile will need to have at least BORROW_ACCESS level of access.
-    const res = await masterModule.listMaster(
+    const res = await masterModule.suspendMaster(
       profileId,
       masterId,
       getSigner(RECRD_PRIVATE_KEY)
     );
     console.log("Master status updated successfully:", res);
   } catch (error) {
-    console.error("Failed to list Master for sale:", error);
+    console.error("Failed to retain Master:", error);
   }
 })();

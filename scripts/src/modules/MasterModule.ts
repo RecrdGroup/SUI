@@ -272,8 +272,6 @@ export class MasterModule {
       });
     }
 
-    txb.setGasBudget(10000000);
-
     // Return the updated Master object to the Profile and resolve the promise
     txb.moveCall({
       target: `${PACKAGE_ID}::profile::return_master`,
@@ -383,7 +381,7 @@ export class MasterModule {
 
     // Call the smart contract function to burn a Master object
     txb.moveCall({
-      target: `${PACKAGE_ID}::master::admin_burn_master`,
+      target: `${PACKAGE_ID}::master::burn_master`,
       arguments: [txb.object(ADMIN_CAP), txb.object(masterId)],
       typeArguments: [masterType],
     });
@@ -437,7 +435,7 @@ export class MasterModule {
 
     // Call the smart contract function to burn a Master Metadata object
     txb.moveCall({
-      target: `${PACKAGE_ID}::master::admin_burn_metadata`,
+      target: `${PACKAGE_ID}::master::burn_metadata`,
       arguments: [txb.object(ADMIN_CAP), txb.object(metadataId)],
       typeArguments: [metadataType!],
     });

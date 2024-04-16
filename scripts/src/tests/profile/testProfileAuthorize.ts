@@ -21,7 +21,7 @@ import { join } from "path";
     const profileRes = await profileModule.authorizeUser(
       profileId,
       userAddress,
-      ACCESS.BORROW_ACCESS,
+      ACCESS.REMOVE_ACCESS,
       getSigner(RECRD_PRIVATE_KEY)
     );
 
