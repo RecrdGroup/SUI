@@ -11,6 +11,7 @@ import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
 import { SUI_FRAMEWORK_ADDRESS } from "@mysten/sui.js/utils";
 import { Master, MasterMetadata } from "../interfaces";
 import { Signer } from "@mysten/sui.js/cryptography";
+import { SALE_STATUS } from "../config";
 
 export interface mintMasterParams {
   type: "Video" | "Audio";
@@ -38,11 +39,6 @@ interface mintMasterResponse {
 
 export const VIDEO_TYPE = `${PACKAGE_ID}::master::Video`;
 export const AUDIO_TYPE = `${PACKAGE_ID}::master::Audio`;
-
-// Available sale statuses in contract
-export const RETAINED: number = 1;
-export const ON_SALE: number = 2;
-export const SUSPENDED: number = 3;
 
 export class MasterModule {
   /**
@@ -164,7 +160,12 @@ export class MasterModule {
     masterId: string,
     signer: Signer
   ): Promise<Master> {
-    return await this.updateStatus(profileId, masterId, ON_SALE, signer);
+    return await this.updateStatus(
+      profileId,
+      masterId,
+      SALE_STATUS.ON_SALE,
+      signer
+    );
   }
 
   /**
@@ -178,7 +179,12 @@ export class MasterModule {
    * @returns A promise that resolves with the updated Master object.
    */
   async suspendMaster(profileId: string, masterId: string, signer: Signer) {
-    return await this.updateStatus(profileId, masterId, SUSPENDED, signer);
+    return await this.updateStatus(
+      profileId,
+      masterId,
+      SALE_STATUS.SUSPENDED,
+      signer
+    );
   }
 
   /**
@@ -193,7 +199,12 @@ export class MasterModule {
    * @returns A promise that resolves with the updated Master object.
    */
   async retainMaster(profileId: string, masterId: string, signer: Signer) {
-    return await this.updateStatus(profileId, masterId, RETAINED, signer);
+    return await this.updateStatus(
+      profileId,
+      masterId,
+      SALE_STATUS.RETAINED,
+      signer
+    );
   }
 
   /**
@@ -225,11 +236,14 @@ export class MasterModule {
     // Determine the function name based on the status
     let functionName: string;
     switch (status) {
-      case ON_SALE:
+      case SALE_STATUS.ON_SALE:
         functionName = "list";
         break;
-      case SUSPENDED:
+      case SALE_STATUS.SUSPENDED:
         functionName = "suspend";
+        break;
+      case SALE_STATUS.RETAINED:
+        functionName = "unlist";
         break;
       default:
         functionName = "unlist";
@@ -244,12 +258,21 @@ export class MasterModule {
     });
 
     // Call the contract to list for sale
-    txb.moveCall({
-      target: `${PACKAGE_ID}::master::${functionName}`,
-      arguments:
-        status == SUSPENDED ? [txb.object(ADMIN_CAP), master] : [master],
-      typeArguments: [masterType],
-    });
+    if (status == SALE_STATUS.SUSPENDED) {
+      txb.moveCall({
+        target: `${PACKAGE_ID}::master::${functionName}`,
+        arguments: [txb.object(ADMIN_CAP), master],
+        typeArguments: [masterType],
+      });
+    } else {
+      txb.moveCall({
+        target: `${PACKAGE_ID}::master::${functionName}`,
+        arguments: [master],
+        typeArguments: [masterType],
+      });
+    }
+
+    txb.setGasBudget(10000000);
 
     // Return the updated Master object to the Profile and resolve the promise
     txb.moveCall({
@@ -260,7 +283,7 @@ export class MasterModule {
 
     // Sign and execute the transaction
     const res = await executeTransaction({ txb, signer });
-
+    console.log(res);
     // Check if the profile was updated successfully
     let updatedMaster = res.objectChanges!.find(
       (e) => e.type == "mutated" && e.objectType.includes("Master")

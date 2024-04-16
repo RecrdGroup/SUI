@@ -1,7 +1,10 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { SuiObjectChangeCreated, SuiTransactionBlockResponse } from "@mysten/sui.js/client";
+import {
+  SuiObjectChangeCreated,
+  SuiTransactionBlockResponse,
+} from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import { executeTransaction, getMasterT } from "../utils";
 import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
@@ -23,48 +26,62 @@ type ProfileUpdateType = keyof typeof PROFILE_UPDATE_FUNCTIONS;
 
 // Define a mapping of error codes to custom error messages
 const errorCodeMessages = {
-  '1': "Sender is not authorized to access the Profile",
-  '2': "The object being received is not of the expected type."
+  "1": "Sender is not authorized to access the Profile",
+  "2": "The object being received is not of the expected type.",
 };
 
 export class ProfileModule {
   /// Create and share a profile
-  async createAndShareProfile(userId: string, username: string, signer: Signer): Promise<SuiObjectChangeCreated> {
+  async new(
+    userId: string,
+    username: string,
+    userAddress: string,
+    signer: Signer
+  ): Promise<SuiObjectChangeCreated> {
     // Create a transaction block
     const txb = new TransactionBlock();
 
-    // Call the smart contract function to create and share a profile
-    txb.moveCall({
-      target: `${PACKAGE_ID}::profile::create_and_share`,
-      arguments: [
-        txb.object(ADMIN_CAP),
-        txb.pure(userId), 
-        txb.pure(username)
-      ],
+    // Call the smart contract function to create a profile and the user identity
+    let identity = txb.moveCall({
+      target: `${PACKAGE_ID}::profile::new`,
+      arguments: [txb.object(ADMIN_CAP), txb.pure(userId), txb.pure(username)],
     });
 
-    // Sign and execute the transaction as RECRD 
+    // Transfer the Identity object to the user's account
+    txb.transferObjects([identity], userAddress);
+
+    // Sign and execute the transaction as RECRD
     const response = await executeTransaction({ txb, signer });
 
     // Check if the profile was created
     if (!response.effects?.created?.length) {
-      throw new Error("Profile creation failed or did not return expected result.");
+      throw new Error(
+        "Profile creation failed or did not return expected result."
+      );
     }
 
     return response.objectChanges?.find((object) => {
-      return object.type === 'created' && object.objectType.startsWith(`${PACKAGE_ID}::profile::Profile`);
+      return (
+        object.type === "created" &&
+        object.objectType.startsWith(`${PACKAGE_ID}::profile::Profile`)
+      );
     }) as SuiObjectChangeCreated & {
       owner: {
         Shared: {
           /** The version at which the object became shared */
           initial_shared_version: string;
         };
-      }
+      };
     };
   }
 
   /// Update profile based on a specific field
-  async updateProfile(profileId: string, updateType: ProfileUpdateType, newValue: number, signer: Signer): Promise<Profile> {
+  async updateProfile(
+    profileId: string,
+    updateType: ProfileUpdateType,
+    newValue: number,
+    signer: Signer
+  ): Promise<Profile> {
     // Create a transaction block
     const txb = new TransactionBlock();
 
@@ -86,13 +103,13 @@ export class ProfileModule {
 
     // Sign and execute the transaction
     const response = await executeTransaction({ txb, signer });
-    
+
     // Check if the profile was updated successfully
     let updatedProfile = response.objectChanges!.find(
-      (e) => e.type == 'mutated' && e.objectType.includes('Profile'),
+      (e) => e.type == "mutated" && e.objectType.includes("Profile")
     );
 
-    if (!updatedProfile || updatedProfile.type !== 'mutated') {
+    if (!updatedProfile || updatedProfile.type !== "mutated") {
       throw new Error("Profile update failed.");
     }
 
@@ -102,10 +119,10 @@ export class ProfileModule {
 
   /// Query a profile by its ID and return Profile with all fields data
   async getProfileById(profileId: string): Promise<Profile> {
-    // Retrieve the profile 
+    // Retrieve the profile
     const profile = await suiClient.getObject({
-      id: profileId, 
-      options: { showContent: true } 
+      id: profileId,
+      options: { showContent: true },
     });
 
     const profileContent: any = profile.data?.content;
@@ -122,17 +139,18 @@ export class ProfileModule {
 
       // Retrieve the content for each authorization dynamic field
       const authorizationPromises = dynamicFieldsData.map(
-        async({objectId}) => {
+        async ({ objectId }) => {
           const objectResponse = await suiClient.getObject({
             id: objectId,
             options: { showContent: true },
           });
 
-          const parsedData = objectResponse.data?.content as AuthorizationDynamicFieldContent;
-          if (parsedData.dataType === 'moveObject' && parsedData.fields) {
+          const parsedData = objectResponse.data
+            ?.content as AuthorizationDynamicFieldContent;
+          if (parsedData.dataType === "moveObject" && parsedData.fields) {
             return {
               address: parsedData.fields.name,
-              level: parsedData.fields.value
+              level: parsedData.fields.value,
             };
           } else {
             console.error(`Object with id ${objectId} is not a moveObject`);
@@ -140,17 +158,16 @@ export class ProfileModule {
           }
         }
       );
-      
+
       // Wait for all authorizations to be resolved
       const authorizationData = await Promise.all(authorizationPromises);
-      
+
       // Set the authorizations in the Map
       authorizationData.forEach((authorization) => {
         if (authorization) {
           authorizations.set(authorization.address, authorization.level);
         }
-      }
-      );
+      });
     }
 
     return {
@@ -165,14 +182,17 @@ export class ProfileModule {
       numberOfFollowing: profileContent.fields?.number_of_followers,
       adRevenue: profileContent.fields?.ad_revenue,
       commissionRevenue: profileContent.fields?.commission_revenue,
-    }
+    };
   }
 
-  /// Authorize a user to access a profile with 
-  /// 0 = BORROW_ACCESS or
-  /// 1 = REMOVE_ACCESS
-  async authorizeUser(profileId: string, user: string, accessLevel: number, signer: Signer): Promise<Profile> {
-    if (accessLevel < 0 || accessLevel > 1) {
+  /// Authorize a user to access a profile with level of access within [0, 250]
+  async authorizeUser(
+    profileId: string,
+    user: string,
+    accessLevel: number,
+    signer: Signer
+  ): Promise<Profile> {
+    if (accessLevel < 0 || accessLevel > 250) {
       throw new Error("Invalid access level specified.");
     }
 
@@ -198,7 +218,11 @@ export class ProfileModule {
   }
 
   /// Deauthorize a user from accessing a profile
-  async deauthorizeUser(profileId: string, user: string, signer: Signer): Promise<Profile> {
+  async deauthorizeUser(
+    profileId: string,
+    user: string,
+    signer: Signer
+  ): Promise<Profile> {
     // Retrieve the profile to get the authorizations
     let profile = await this.getProfileById(profileId);
 
@@ -208,11 +232,7 @@ export class ProfileModule {
     // Call the smart contract function to deauthorize a user
     txb.moveCall({
       target: `${PACKAGE_ID}::profile::deauthorize`,
-      arguments: [
-        txb.object(ADMIN_CAP),
-        txb.object(profileId),
-        txb.pure(user),
-      ],
+      arguments: [txb.object(ADMIN_CAP), txb.object(profileId), txb.pure(user)],
     });
 
     // Sign and execute the transaction
@@ -221,7 +241,7 @@ export class ProfileModule {
     // Retrieve the updated profile after deauthorization
     profile = await this.getProfileById(profileId);
 
-    // Check if the user is removed from the authorizations table 
+    // Check if the user is removed from the authorizations table
     if (profile.authorizations.has(user)) {
       throw new Error("User was not deauthorized successfully.");
     }
@@ -231,11 +251,17 @@ export class ProfileModule {
   }
 
   /// Buy Master from a profile and transfer to the buyer's profile
-  async buyMaster(sellerProfile: string, masterId: string, buyerProfile: string, receiptId: string, signer: Signer): Promise<SuiTransactionBlockResponse> {
+  async buyMaster(
+    sellerProfile: string,
+    masterId: string,
+    buyerProfile: string,
+    receiptId: string,
+    signer: Signer
+  ): Promise<SuiTransactionBlockResponse> {
     // Get the Master type
-    const masterRes = await suiClient.getObject({ 
+    const masterRes = await suiClient.getObject({
       id: masterId,
-      options: { showContent: true }
+      options: { showContent: true },
     });
 
     const content: any = masterRes.data?.content;
@@ -243,7 +269,7 @@ export class ProfileModule {
 
     // Create a transaction block
     const txb = new TransactionBlock();
-    
+
     // Call the smart contract function to buy a Master object
     txb.moveCall({
       target: `${PACKAGE_ID}::profile::buy`,
@@ -253,7 +279,7 @@ export class ProfileModule {
         txb.object(buyerProfile),
         txb.object(receiptId),
       ],
-      typeArguments:[masterType!]
+      typeArguments: [masterType!],
     });
 
     // Sign and execute the transaction
@@ -264,10 +290,10 @@ export class ProfileModule {
 
   /// Receive Master from a profile if sender is authorized with REMOVE_ACCESS (1)
   async receiveMaster(profileId: string, masterId: string, signer: Signer) {
-    // Get the Master type 
-    const masterRes = await suiClient.getObject({ 
+    // Get the Master type
+    const masterRes = await suiClient.getObject({
       id: masterId,
-      options: { showContent: true }
+      options: { showContent: true },
     });
 
     const content: any = masterRes.data?.content;
@@ -279,10 +305,7 @@ export class ProfileModule {
     // Call the smart contract function to receive a Master object
     let master = txb.moveCall({
       target: `${PACKAGE_ID}::profile::receive_master`,
-      arguments: [
-        txb.object(profileId),
-        txb.object(masterId),
-      ],
+      arguments: [txb.object(profileId), txb.object(masterId)],
       typeArguments: [masterType!],
     });
 
@@ -294,12 +317,12 @@ export class ProfileModule {
 
     // Sign and execute the transaction
     const response = await executeTransaction({ txb, signer });
-    
+
     // Check if the response indicates a MoveAbort failure
-    if (response.effects?.status?.status === 'failure') {
+    if (response.effects?.status?.status === "failure") {
       const errorMessage = response.effects.status.error;
 
-      if (errorMessage?.includes('MoveAbort')) {
+      if (errorMessage?.includes("MoveAbort")) {
         // Iterate through the error codes and check if the error message matches one
         for (const [code, message] of Object.entries(errorCodeMessages)) {
           if (errorMessage.includes(`${code}) in command`)) {

@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node src/index",
-    "testProfileCreate": "ts-node src/tests/profile/testProfileCreate.ts",
+    "testProfileNew": "ts-node src/tests/profile/testProfileNew.ts",
     "testProfileAuthorize": "ts-node src/tests/profile/testProfileAuthorize.ts",
     "testProfileDeauthorize": "ts-node src/tests/profile/testProfileDeauthorize.ts",
     "testProfileUpdate": "ts-node src/tests/profile/testProfileUpdate.ts",

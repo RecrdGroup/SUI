@@ -11,14 +11,23 @@ import { SALE_STATUS } from "../../config";
 (async () => {
   try {
     const masterModule = new MasterModule();
-    
+
     // Get last created Profile ID from temp file
-    const profileId = readFileSync(join(__dirname, '..', 'tempProfileId.txt'), { encoding: 'utf-8' });
+    const profileId = readFileSync(join(__dirname, "..", "tempProfileId.txt"), {
+      encoding: "utf-8",
+    });
 
     // Get last minted Master ID from temp file
-    const masterId = readFileSync(join(__dirname, '..', 'tempMasterId.txt'), { encoding: 'utf-8' });
+    const masterId = readFileSync(join(__dirname, "..", "tempMasterId.txt"), {
+      encoding: "utf-8",
+    });
 
-    const res = await masterModule.updateMasterSaleStatus(profileId, masterId, SALE_STATUS.ON_SALE, getSigner(RECRD_PRIVATE_KEY));
+    // Profile will need to have at least BORROW_ACCESS level of access.
+    const res = await masterModule.listMaster(
+      profileId,
+      masterId,
+      getSigner(RECRD_PRIVATE_KEY)
+    );
     console.log("Master status updated successfully:", res);
   } catch (error) {
     console.error("Failed to list Master for sale:", error);

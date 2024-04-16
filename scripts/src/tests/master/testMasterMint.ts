@@ -34,7 +34,7 @@ import { RECRD_PRIVATE_KEY } from "../../config";
       revenue_available: 0,
       revenue_paid: 0,
       revenue_pending: 0,
-      sale_status: SALE_STATUS.ON_SALE,
+      sale_status: SALE_STATUS.RETAINED,
     };
 
     const result = await masterModule.mintMaster(
