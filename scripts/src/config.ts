@@ -16,6 +16,7 @@ export const SUI_NETWORK = process.env.SUI_NETWORK!;
 export const PACKAGE_ID = process.env.RECRD_PACKAGE_ID!;
 export const ADMIN_CAP = process.env.CORE_ADMIN_CAP!;
 export const PUBLISHER = process.env.MASTER_PUBLISHER!;
+export const REGISTRY = process.env.REGISTRY!;
 export const RECRD_PRIVATE_KEY = process.env.RECRD_PRIVATE_KEY!;
 export const USER_PRIVATE_KEY = process.env.USER_PRIVATE_KEY!;
 

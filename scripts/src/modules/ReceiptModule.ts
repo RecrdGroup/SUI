@@ -4,12 +4,16 @@
 import { Signer } from "@mysten/sui.js/cryptography";
 import { SuiObjectChangeCreated } from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
-import { ADMIN_CAP, PACKAGE_ID } from "../config";
+import { ADMIN_CAP, PACKAGE_ID, REGISTRY } from "../config";
 import { executeTransaction } from "../utils";
 
 export class ReceiptModule {
   /// Issue a new Receipt for user that wants to buy a Master
-  async newReceipt( masterId: string, profileId: string, signer: Signer ): Promise<SuiObjectChangeCreated> {
+  async newReceipt(
+    masterId: string,
+    profileId: string,
+    signer: Signer
+  ): Promise<SuiObjectChangeCreated> {
     // Create a transaction block
     const txb = new TransactionBlock();
 
@@ -19,6 +23,7 @@ export class ReceiptModule {
         txb.object(ADMIN_CAP),
         txb.pure(masterId),
         txb.pure(profileId),
+        txb.object(REGISTRY),
       ],
     });
 
@@ -28,7 +33,10 @@ export class ReceiptModule {
 
     // Iterate through objectChanges to find the Receipt object
     response.objectChanges?.forEach((change) => {
-      if (change.type === 'created' && change.objectType.includes('::receipt::Receipt')) {
+      if (
+        change.type === "created" &&
+        change.objectType.includes("::receipt::Receipt")
+      ) {
         receipt = change;
       }
     });

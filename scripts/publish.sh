@@ -43,6 +43,7 @@ newObjs=$(echo "$publish_res" | jq -r '.objectChanges[] | select(.type == "creat
 ADMIN_CAP_ID=$(echo "$newObjs" | jq -r 'select (.objectType | contains("core::AdminCap")).objectId')
 UPGRADE_CAP_ID=$(echo "$newObjs" | jq -r 'select (.objectType | contains("::package::UpgradeCap")).objectId')
 PUBLISHER=$(echo "$newObjs" | jq -r 'select (.objectType | contains("package::Publisher")).objectId')
+REGISTRY=$(echo "$newObjs" | jq -r 'select (.objectType | contains("::core::Registry")).objectId')
 
 cat >.env<<-ENV
 SUI_NETWORK=$NETWORK
@@ -51,6 +52,7 @@ RECRD_PACKAGE_ID=$PACKAGE_ID
 RECRD_UPGRADE_CAP=$UPGRADE_CAP_ID
 CORE_ADMIN_CAP=$ADMIN_CAP_ID
 PUBLISHER=$PUBLISHER
+REGISTRY=$REGISTRY
 RECRD_PRIVATE_KEY=$PRIVATE_KEY
 USER_PRIVATE_KEY=
 ENV
