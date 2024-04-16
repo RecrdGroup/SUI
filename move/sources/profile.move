@@ -28,9 +28,8 @@ module recrd::profile {
   const EInvalidAccessRights: u64 = 2;
   const EInvalidObject: u64 = 3;
   const EAccessLevelOutOfRange: u64 = 4;
-  const ENoEntryFound: u64 = 5;
-  const ENotAuthorized: u64 = 6;
-  const EAccessLevelOutOfBounds: u64 = 7;
+  const ENotAuthorized: u64 = 5;
+  const EAccessLevelOutOfBounds: u64 = 6;
 
   // === Constants ===
 
@@ -318,48 +317,61 @@ module recrd::profile {
 
   // === Accessors ===
 
+  // Returns the user ID.
   public fun user_id(self: &Profile): String {
     self.user_id
   }
 
+  // Returns the username.
   public fun username(self: &Profile): String {
     self.username
   }
 
+  // Returns the level of access for given address.
   public fun access_rights(self: &Profile, user: address): u8 {
-    assert!(table::contains(&self.authorizations, user), ENoEntryFound);
+    // First checks whether the address exists in the authorizations table.
+    assert!(table::contains(&self.authorizations, user), ENotAuthorized);
     *table::borrow(&self.authorizations, user)
   }
 
+  // Updates the watch time for given profile.
   public fun watch_time(self: &Profile): u64 {
     self.watch_time
   }
 
+  // Updates the number of videos watched for given profile.
   public fun videos_watched(self: &Profile): u64 {
     self.videos_watched
   }
 
+  // Updates the number of adverts watched for given profile.
   public fun adverts_watched(self: &Profile): u64 {
     self.adverts_watched
   }
   
+  // Updates the number of followers for given profile.
   public fun number_of_followers(self: &Profile): u64 {
     self.number_of_followers
   }
 
+  // Updates the number users given profile is following.
   public fun number_of_following(self: &Profile): u64 {
     self.number_of_following
   }
 
+  // Updates the ad revenue for given profile.
   public fun ad_revenue(self: &Profile): u64 {
     self.ad_revenue
   }
   
+  // Updates the commission revenue for given profile.
   public fun commission_revenue(self: &Profile): u64 {
     self.commission_revenue
   }
 
   // === Private Functions ===
+
+  /// Receives `Master<T>` from `Profile`
   fun receive_master_<T: drop>(
     self: &mut Profile, master_to_receive: Receiving<Master<T>>
   ): Master<T> {
