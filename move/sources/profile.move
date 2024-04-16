@@ -30,6 +30,7 @@ module recrd::profile {
   const EAccessLevelOutOfRange: u64 = 4;
   const ENotAuthorized: u64 = 5;
   const EAccessLevelOutOfBounds: u64 = 6;
+  const EMasterNotOnSale: u64 = 7;
 
   // === Constants ===
 
@@ -209,7 +210,7 @@ module recrd::profile {
     assert!(object::id(&master) == master_id, EInvalidObject);
 
     // Only masters with ON_SALE status can be bought
-    assert!(master::sale_status<T>(&master) == ON_SALE, EInvalidSaleStatus);
+    assert!(master::sale_status<T>(&master) == ON_SALE, EMasterNotOnSale);
 
     // Update the sale status of the master object to STALE
     master::update_sale_status<T>(&mut master, STALE);
