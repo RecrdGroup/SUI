@@ -13,6 +13,8 @@ import { Signer } from "@mysten/sui.js/cryptography";
 
 // Contract supported functions for updating profile fields
 const PROFILE_UPDATE_FUNCTIONS = {
+  userId: "update_user_id",
+  username: "update_username",
   watchTime: "update_watch_time",
   videosWatched: "update_videos_watched",
   advertsWatched: "update_adverts_watched",
@@ -20,6 +22,7 @@ const PROFILE_UPDATE_FUNCTIONS = {
   numberOfFollowing: "update_number_of_following",
   adRevenue: "update_ad_revenue",
   commissionRevenue: "update_commission_revenue",
+  authorization: "update_authorization",
 };
 
 type ProfileUpdateType = keyof typeof PROFILE_UPDATE_FUNCTIONS;
@@ -79,7 +82,8 @@ export class ProfileModule {
   async updateProfile(
     profileId: string,
     updateType: ProfileUpdateType,
-    newValue: number,
+    newValue: string | number,
+    addr: string,
     signer: Signer
   ): Promise<Profile> {
     // Create a transaction block
@@ -92,14 +96,40 @@ export class ProfileModule {
     }
 
     // Construct the transaction call based on the update type
-    txb.moveCall({
-      target: `${PACKAGE_ID}::profile::${updateFunctionName}`,
-      arguments: [
-        txb.object(ADMIN_CAP),
-        txb.object(profileId),
-        txb.pure(newValue),
-      ],
-    });
+    if (updateType == "userId") {
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::${updateFunctionName}`,
+        arguments: [
+          txb.object(ADMIN_CAP),
+          txb.object(profileId),
+          txb.pure(newValue, "string"),
+        ],
+      });
+    } else if (updateType == "username") {
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::${updateFunctionName}`,
+        arguments: [txb.object(profileId), txb.pure(newValue, "string")],
+      });
+    } else if (updateType == "authorization") {
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::${updateFunctionName}`,
+        arguments: [
+          txb.object(ADMIN_CAP),
+          txb.object(profileId),
+          txb.pure(addr),
+          txb.pure(newValue),
+        ],
+      });
+    } else {
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::${updateFunctionName}`,
+        arguments: [
+          txb.object(ADMIN_CAP),
+          txb.object(profileId),
+          txb.pure(newValue),
+        ],
+      });
+    }
 
     // Sign and execute the transaction
     const response = await executeTransaction({ txb, signer });
