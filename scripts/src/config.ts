@@ -5,7 +5,7 @@ import path from "path";
 import { SuiClient } from "@mysten/sui.js/client";
 import { config } from "dotenv";
 
-const envPath = path.resolve(__dirname, '../.env');
+const envPath = path.resolve(__dirname, "../.env");
 
 config({
   path: envPath,
@@ -26,15 +26,18 @@ export const suiClient = new SuiClient({
 
 // Access level constants per contract
 export const ACCESS = {
-  BORROW: 0,
-  REMOVE: 1
+  DEFAULT_ACCESS: 100,
+  BORROW_ACCESS: 110,
+  UPDATE_ACCESS: 120,
+  REMOVE_ACCESS: 150,
+  ADMIN_ACCESS: 200,
 };
 
 // Sale status constants per contract
 export const SALE_STATUS = {
-  STALE: 0,
-  ON_SALE: 1,
-  SUSPENDED: 2,
+  RETAINED: 1,
+  ON_SALE: 2,
+  SUSPENDED: 3,
 };
 
 export const VIDEO_TYPE = `${PACKAGE_ID}::master::Video`;
@@ -42,15 +45,23 @@ export const AUDIO_TYPE = `${PACKAGE_ID}::master::Audio`;
 export const LOYALTY_FREE_URL =
   "https://images.pexels.com/photos/19987062/pexels-photo-19987062/free-photo-of-a-close-up-of-pink-flowers-in-a-field.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2";
 
-  const keys = Object.keys(process.env);
-  console.log("env contains PACKAGE_ID:", keys.includes("RECRD_PACKAGE_ID"));
-  console.log("env contains ADMIN_CAP:", keys.includes("CORE_ADMIN_CAP"));
-  console.log("env contains RECRD_PRIVATE_KEY:", keys.includes("RECRD_PRIVATE_KEY"));
-  console.log("env contains USER_PRIVATE_KEY:", keys.includes("USER_PRIVATE_KEY"));
-  console.log('-----------------------------------')
+const keys = Object.keys(process.env);
+console.log("env contains PACKAGE_ID:", keys.includes("RECRD_PACKAGE_ID"));
+console.log("env contains ADMIN_CAP:", keys.includes("CORE_ADMIN_CAP"));
+console.log(
+  "env contains RECRD_PRIVATE_KEY:",
+  keys.includes("RECRD_PRIVATE_KEY")
+);
+console.log(
+  "env contains USER_PRIVATE_KEY:",
+  keys.includes("USER_PRIVATE_KEY")
+);
+console.log("-----------------------------------");
 
 // In config.ts, after loading environment variables
 if (!SUI_NETWORK || !PACKAGE_ID || !ADMIN_CAP || !RECRD_PRIVATE_KEY) {
-  console.error("Critical environment variable(s) missing. Please check your .env file.");
+  console.error(
+    "Critical environment variable(s) missing. Please check your .env file."
+  );
   process.exit(1); // Exits the process with a failure code
 }

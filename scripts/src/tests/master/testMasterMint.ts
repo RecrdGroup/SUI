@@ -13,7 +13,9 @@ import { RECRD_PRIVATE_KEY } from "../../config";
     const masterModule = new MasterModule();
 
     // Get last created Profile ID from temp file
-    const profileId = readFileSync(join(__dirname, '..', 'tempProfileId.txt'), { encoding: 'utf-8' });
+    const profileId = readFileSync(join(__dirname, "..", "tempProfileId.txt"), {
+      encoding: "utf-8",
+    });
 
     // Mint a Master
     const mintMasterParams: mintMasterParams = {
@@ -25,14 +27,30 @@ import { RECRD_PRIVATE_KEY } from "../../config";
       hashtags: ["test", "video"],
       creator_profile_id: profileId,
       royalty_percentage_bp: 1000,
-      sale_status: SALE_STATUS.STALE,
+      master_metadata_parent: "", // replace with metadata id
+      master_metadata_origin: "", // replace with metadata id
+      expressions: 0,
+      revenue_total: 0,
+      revenue_available: 0,
+      revenue_paid: 0,
+      revenue_pending: 0,
+      sale_status: SALE_STATUS.ON_SALE,
     };
 
-    const result = await masterModule.mintMaster(mintMasterParams, getSigner(RECRD_PRIVATE_KEY));
+    const result = await masterModule.mintMaster(
+      mintMasterParams,
+      getSigner(RECRD_PRIVATE_KEY)
+    );
 
     // Write the Master & Metadata IDs to a temp file for use in other scripts
-    writeFileSync(join(__dirname, '..', 'tempMasterId.txt'), result.master?.objectId!);
-    writeFileSync(join(__dirname, '..', 'tempMasterMetadataId.txt'), result.metadata?.objectId!);
+    writeFileSync(
+      join(__dirname, "..", "tempMasterId.txt"),
+      result.master?.objectId!
+    );
+    writeFileSync(
+      join(__dirname, "..", "tempMasterMetadataId.txt"),
+      result.metadata?.objectId!
+    );
 
     console.log("Master minted successfully:", result);
   } catch (error) {

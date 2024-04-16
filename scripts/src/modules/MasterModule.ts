@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { SuiObjectChangeCreated, SuiObjectRef } from "@mysten/sui.js/client";
-import { TransactionBlock } from "@mysten/sui.js/transactions";
+import {
+  TransactionBlock,
+  TransactionResult,
+} from "@mysten/sui.js/transactions";
 import { executeTransaction, getMasterT, getMasterMetadataT } from "../utils";
 import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
 import { SUI_FRAMEWORK_ADDRESS } from "@mysten/sui.js/utils";
@@ -18,8 +21,8 @@ export interface mintMasterParams {
   hashtags: string[];
   creator_profile_id: string;
   royalty_percentage_bp: number;
-  master_metadata_parent?: string;
-  master_metadata_origin?: string;
+  master_metadata_parent: string;
+  master_metadata_origin: string;
   expressions: number;
   revenue_total: number;
   revenue_available: number;
@@ -59,12 +62,41 @@ export class MasterModule {
     // Create a transaction block
     const txb = new TransactionBlock();
 
-    // Create an empty option for metadata parent and origin
-    const none = txb.moveCall({
-      target: `0x1::option::none`,
-      arguments: [],
-      typeArguments: [`${SUI_FRAMEWORK_ADDRESS}::object::ID`],
-    });
+    // Prepare empty TransactionResults for meta origin and parent.
+    let parent: TransactionResult;
+    let origin: TransactionResult;
+
+    // If metadata parent ID is empty string, create empty option.
+    if (params.master_metadata_parent.length == 0) {
+      parent = txb.moveCall({
+        target: `0x1::option::none`,
+        arguments: [],
+        typeArguments: [`${SUI_FRAMEWORK_ADDRESS}::object::ID`],
+      });
+    } else {
+      // Create an option with given metadata parent ID
+      parent = txb.moveCall({
+        target: `0x1::option::some`,
+        arguments: [txb.pure(params.master_metadata_parent, "address")],
+        typeArguments: [`${SUI_FRAMEWORK_ADDRESS}::object::ID`],
+      });
+    }
+
+    // If metadata origin ID is empty string, create empty option.
+    if (params.master_metadata_origin.length == 0) {
+      origin = txb.moveCall({
+        target: `0x1::option::none`,
+        arguments: [],
+        typeArguments: [`${SUI_FRAMEWORK_ADDRESS}::object::ID`],
+      });
+    } else {
+      // Create an option with given metadata origin ID
+      origin = txb.moveCall({
+        target: `0x1::option::some`,
+        arguments: [txb.pure(params.master_metadata_origin, "address")],
+        typeArguments: [`${SUI_FRAMEWORK_ADDRESS}::object::ID`],
+      });
+    }
 
     // Call the smart contract function to mint a new Master object
     let masterTx = txb.moveCall({
@@ -78,12 +110,13 @@ export class MasterModule {
         txb.pure(params.hashtags),
         txb.pure(params.creator_profile_id),
         txb.pure(params.royalty_percentage_bp),
-        none,
-        none,
-        txb.pure(0),
-        txb.pure(0),
-        txb.pure(0),
-        txb.pure(0),
+        parent,
+        origin,
+        txb.pure(params.expressions),
+        txb.pure(params.revenue_total),
+        txb.pure(params.revenue_available),
+        txb.pure(params.revenue_paid),
+        txb.pure(params.revenue_pending),
         txb.pure(params.sale_status),
       ],
       typeArguments: [params.type === "Video" ? VIDEO_TYPE : AUDIO_TYPE],
