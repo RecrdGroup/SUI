@@ -39,8 +39,8 @@ module recrd::core_test {
         {
             let admin_cap = ts::take_from_sender<AdminCap>(&scenario);
             let publisher = ts::take_from_sender<Publisher>(&scenario);
-            let new_admin_cap = core::admin_new_cap(&publisher, ts::ctx(&mut scenario));
-            core::burn_for_testing(new_admin_cap);
+            let new_admin_cap = core::new_admincap(&publisher, ts::ctx(&mut scenario));
+            core::burn_admincap(new_admin_cap);
             ts::return_to_sender(&scenario, admin_cap);
             ts::return_to_sender(&scenario, publisher);
         };
@@ -48,4 +48,19 @@ module recrd::core_test {
         ts::end(scenario);
     }
 
+    #[test]
+    public fun burns_admin_cap() {
+        let scenario = ts::begin(ADMIN);
+
+        core::init_for_testing(ts::ctx(&mut scenario));
+        master::init_for_testing(ts::ctx(&mut scenario));
+
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let admin_cap = ts::take_from_sender<AdminCap>(&scenario);
+            core::burn_admincap(admin_cap);
+        };
+
+        ts::end(scenario);
+    }
 }

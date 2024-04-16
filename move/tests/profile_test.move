@@ -11,17 +11,16 @@ module recrd::profile_test {
     use sui::object::{Self, ID};
 
     use recrd::core::{Self};
-    use recrd::profile::{Self, Profile, Identity, EAccessLevelOutOfRange, ENewValueShouldBeHigher, ENoEntryFound};
-    use recrd::master::{Self, Master, Video};
+    use recrd::profile::{Self, Profile, Identity, EAccessLevelOutOfRange, ENewValueShouldBeHigher, ENotAuthorized};
+    use recrd::master::{Video};
+    use recrd::master_test;
 
     // === Constants ===
     const USERNAME: vector<u8> = b"username";
     const USER_ID: vector<u8> = b"user_id";
     const USER_PROFILE: address = @0xC0FFEE;
-    const USER_ROYALTY_BP: u16 = 1_000;
     const ADMIN: address = @0xDECAF;
     const USER: address = @0xB00;
-    const ON_SALE: u8 = 1;
 
     // === Errors ===
     const EInvalidAccessRights: u64 = 1;
@@ -36,7 +35,7 @@ module recrd::profile_test {
         let admin_cap = core::mint_for_testing(ctx);
         let profile_cap = profile::new(&admin_cap, utf8(USER_ID), utf8(USERNAME), ctx);
         transfer::public_transfer(profile_cap, USER);
-        core::burn_for_testing(admin_cap);
+        core::burn_admincap(admin_cap);
     }
 
     public fun authorize_user(scenario: &mut Scenario, profile: &mut Profile, user: address, role: u8) {
@@ -44,32 +43,7 @@ module recrd::profile_test {
         let ctx = ts::ctx(scenario);
         let admin_cap = core::mint_for_testing(ctx);
         profile::authorize(&admin_cap, profile, user, role);
-        core::burn_for_testing(admin_cap);
-    }
-
-    public fun mint_master<T: drop>(scenario: &mut Scenario): Master<T> {
-        ts::next_tx(scenario, ADMIN);
-        let ctx = ts::ctx(scenario);
-        let admin_cap = core::mint_for_testing(ctx);
-
-        let master = master::new<T>(
-            &admin_cap,
-            utf8(b"Test Master"),
-            utf8(b"Test Description"),
-            utf8(b"https://test.com/image"),
-            utf8(b"https://test.com/media"),
-            vector[utf8(b"test"), utf8(b"master")],
-            object::id(&admin_cap),
-            USER_ROYALTY_BP,
-            option::none<ID>(),
-            option::none<ID>(),
-            ON_SALE,
-            ctx
-        );
-
-        core::burn_for_testing(admin_cap);
-
-        master
+        core::burn_admincap(admin_cap);
     }
 
     // === Tests ===
@@ -134,25 +108,30 @@ module recrd::profile_test {
     #[test]
     public fun admin_receives() {
         let scenario = ts::begin(ADMIN);
-        let test = &mut scenario;
 
-        create_profile(test);
+        create_profile(&mut scenario);
 
         // --- Authorize admin to receive ---
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(test);
-            authorize_user(test, &mut profile, ADMIN, 1);
+            let profile = ts::take_shared<Profile>(&scenario);
+            authorize_user(&mut scenario, &mut profile, ADMIN, 1);
             ts::return_shared(profile);
         };
 
         // --- Create a master and send it to the profile ---
         // let master_id;
-        ts::next_tx(test, ADMIN);
+        ts::next_tx(&mut scenario, ADMIN);
         {
-            let master = mint_master<Video>(test);
+            let master = master_test::mint_master<Video>(
+                &mut scenario,
+                utf8(b"Test Video Master"),
+                option::none<ID>(),
+                option::none<ID>()
+            );
+
             // master_id = object::id(&master);
-            let profile = ts::take_shared<Profile>(test);
+            let profile = ts::take_shared<Profile>(&scenario);
             transfer::public_transfer(master, object::id_address(&profile));
             ts::return_shared(profile);
         };
@@ -194,7 +173,7 @@ module recrd::profile_test {
             profile::update_number_of_following(&mut profile, 50, ts::ctx(&mut scenario));
             profile::update_ad_revenue(&admin_cap, &mut profile, 60);
             profile::update_commission_revenue(&admin_cap, &mut profile, 70);
-            core::burn_for_testing(admin_cap);
+            core::burn_admincap(admin_cap);
             ts::return_shared(profile);
         };
 
@@ -246,7 +225,7 @@ module recrd::profile_test {
             let profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, USER, 120);
-            core::burn_for_testing(admin_cap);
+            core::burn_admincap(admin_cap);
             ts::return_shared(profile);
         };
 
@@ -273,7 +252,7 @@ module recrd::profile_test {
             let profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, USER, 120);
-            core::burn_for_testing(admin_cap);
+            core::burn_admincap(admin_cap);
             ts::return_shared(profile);
         };
 
@@ -300,7 +279,7 @@ module recrd::profile_test {
             let profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, USER, 120);
-            core::burn_for_testing(admin_cap);
+            core::burn_admincap(admin_cap);
             ts::return_shared(profile);
         };
 
@@ -327,7 +306,7 @@ module recrd::profile_test {
             let profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, USER, 120);
-            core::burn_for_testing(admin_cap);
+            core::burn_admincap(admin_cap);
             ts::return_shared(profile);
         };
 
@@ -340,7 +319,7 @@ module recrd::profile_test {
             
             // The new value should be higher than the current one
             profile::update_ad_revenue(&admin_cap, &mut profile, 0);
-            core::burn_for_testing(admin_cap);
+            core::burn_admincap(admin_cap);
             ts::return_shared(profile);
         };
 
@@ -363,7 +342,7 @@ module recrd::profile_test {
             let admin_cap = core::mint_for_testing(ctx);
             // The new value should be higher than the current one
             profile::update_commission_revenue(&admin_cap, &mut profile, 0);
-            core::burn_for_testing(admin_cap);
+            core::burn_admincap(admin_cap);
             ts::return_shared(profile);
         };
 
@@ -371,7 +350,7 @@ module recrd::profile_test {
     }
 
     #[test]
-    #[expected_failure(abort_code = ENoEntryFound)]
+    #[expected_failure(abort_code = ENotAuthorized)]
     public fun trying_to_read_access_of_not_registered_address() {
         let scenario = ts::begin(ADMIN);
         let test = &mut scenario;

@@ -45,7 +45,7 @@ module recrd::receipt_test {
             assert!(address == USER, EInvalidMasterId);
         };
 
-        core::burn_for_testing(admin_cap);
+        core::burn_admincap(admin_cap);
         ts::end(scenario);
     }
 }

@@ -64,7 +64,7 @@ module recrd::core {
 
   /// Mints and returns a new `AdminCap` object. 
   /// Requires Publisher for authentication.
-  public fun admin_new_cap(publisher: &Publisher, ctx: &mut TxContext): AdminCap {
+  public fun new_admincap(publisher: &Publisher, ctx: &mut TxContext): AdminCap {
     // Make sure the publisher corresponds to the package that creates AdminCap.
     assert!(package::from_package<AdminCap>(publisher), EWrongPublisher);
 
@@ -74,13 +74,13 @@ module recrd::core {
   }
 
   /// Burns the `AdminCap` object.
-  public fun admin_burn_cap(cap: AdminCap) {
+  public fun burn_admincap(cap: AdminCap) {
     let AdminCap { id } = cap;
     object::delete(id);
   }
 
   /// Admin can update the registry's version.
-  public fun admin_bump_registry_version(_: &AdminCap, registry: &mut Registry) {
+  public fun bump_registry_version(_: &AdminCap, registry: &mut Registry) {
     registry.version = VERSION;
   }
 
@@ -96,12 +96,6 @@ module recrd::core {
     AdminCap {
       id: object::new(ctx)
     }
-  }
-
-  #[test_only]
-  public fun burn_for_testing(admin_cap: AdminCap) {
-    let AdminCap { id } = admin_cap;
-    object::delete(id);
   }
 
   #[test_only]

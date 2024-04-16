@@ -22,6 +22,8 @@ module recrd::master {
 
   // === Friends ===
   friend recrd::profile;
+  #[test_only]
+  friend recrd::master_test;
   
   // === Errors ===
   const EHashtagDoesNotExist: u64 = 1;
