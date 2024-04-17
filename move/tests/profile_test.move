@@ -3,12 +3,7 @@
 module recrd::profile_test {
     // === Imports ===
     use std::string::utf8;
-    use std::option;
-
-    use sui::tx_context::{Self, TxContext};
     use sui::test_scenario::{Self as ts, Scenario};
-    use sui::transfer::{Self};
-    use sui::object::{Self, ID};
 
     use recrd::core::{Self};
     use recrd::profile::{Self, Profile, Identity, EAccessLevelOutOfRange, ENewValueShouldBeHigher, ENotAuthorized};
@@ -50,7 +45,7 @@ module recrd::profile_test {
 
     #[test]
     public fun mints_profile() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         create_profile(&mut scenario);
 
         // --- Check the Profile state ---
@@ -87,7 +82,7 @@ module recrd::profile_test {
     // should we also check that the admin can successfully be assigned the REMOVE_ACCESS?
     #[test]
     public fun admin_authorizes_address() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let test = &mut scenario;
 
         create_profile(test);
@@ -95,7 +90,7 @@ module recrd::profile_test {
         // --- Authorize user & assert the access rights ---
         ts::next_tx(test, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(test);
+            let mut profile = ts::take_shared<Profile>(test);
             authorize_user(test, &mut profile, USER_PROFILE, 100);
             let user_access = profile::access_rights(&profile, USER_PROFILE);
             assert!(user_access == 100, EInvalidAccessRights);
@@ -107,14 +102,14 @@ module recrd::profile_test {
 
     #[test]
     public fun admin_receives() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
 
         create_profile(&mut scenario);
 
         // --- Authorize admin to receive ---
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             authorize_user(&mut scenario, &mut profile, ADMIN, 1);
             ts::return_shared(profile);
         };
@@ -156,14 +151,14 @@ module recrd::profile_test {
 
     #[test]
     public fun admin_updates_profile_fields() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
 
         create_profile(&mut scenario);
 
         // --- Update the profile fields ---
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, ADMIN, 200);
             profile::update_watch_time(&mut profile, 10, ts::ctx(&mut scenario));
@@ -198,7 +193,7 @@ module recrd::profile_test {
     #[test]
     #[expected_failure(abort_code = EAccessLevelOutOfRange)]
     public fun admin_authorizes_address_with_invalid_u8(){
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let test = &mut scenario;
 
         create_profile(test);
@@ -206,7 +201,7 @@ module recrd::profile_test {
         // --- Authorize user with an invalid role ---
         ts::next_tx(test, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(test);
+            let mut profile = ts::take_shared<Profile>(test);
             authorize_user(test, &mut profile, USER_PROFILE, 0);
             ts::return_shared(profile);
         };
@@ -217,12 +212,12 @@ module recrd::profile_test {
     #[test]
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
     public fun updates_watch_time_with_invalid_value() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
 
         create_profile(&mut scenario);
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, USER, 120);
             core::burn_admincap(admin_cap);
@@ -232,7 +227,7 @@ module recrd::profile_test {
         // --- Update the profile watch time with an invalid value ---
         ts::next_tx(&mut scenario, USER);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             // The new value should be higher than the current one
             profile::update_watch_time(&mut profile, 0, ts::ctx(&mut scenario));
             ts::return_shared(profile);
@@ -244,12 +239,12 @@ module recrd::profile_test {
     #[test]
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
     public fun updates_videos_watched_with_invalid_value() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
 
         create_profile(&mut scenario);
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, USER, 120);
             core::burn_admincap(admin_cap);
@@ -259,7 +254,7 @@ module recrd::profile_test {
         // --- Update the profile watched videos with an invalid value ---
         ts::next_tx(&mut scenario, USER);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             // The new value should be higher than the current one
             profile::update_videos_watched(&mut profile, 0, ts::ctx(&mut scenario));
             ts::return_shared(profile);
@@ -271,12 +266,12 @@ module recrd::profile_test {
     #[test]
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
     public fun updates_adverts_watched_with_invalid_value() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
 
         create_profile(&mut scenario);
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, USER, 120);
             core::burn_admincap(admin_cap);
@@ -286,7 +281,7 @@ module recrd::profile_test {
         // --- Update the profile watched adverts with an invalid value ---
         ts::next_tx(&mut scenario, USER);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             // The new value should be higher than the current one
             profile::update_adverts_watched(&mut profile, 0, ts::ctx(&mut scenario));
             ts::return_shared(profile);
@@ -298,12 +293,12 @@ module recrd::profile_test {
     #[test]
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
     public fun admin_updates_ad_revenue_with_invalid_value() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
 
         create_profile(&mut scenario);
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, USER, 120);
             core::burn_admincap(admin_cap);
@@ -313,7 +308,7 @@ module recrd::profile_test {
         // --- Update the profile ad revenue with an invalid value ---
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
+            let mut profile = ts::take_shared<Profile>(&scenario);
             let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
             profile::authorize(&admin_cap, &mut profile, ADMIN, 200);
             
@@ -329,7 +324,7 @@ module recrd::profile_test {
     #[test]
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
     public fun admin_updates_commission_revenue_with_invalid_value() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let test = &mut scenario;
 
         create_profile(test);
@@ -337,7 +332,7 @@ module recrd::profile_test {
         // --- Update the profile commission revenue with an invalid value ---
         ts::next_tx(test, ADMIN);
         {
-            let profile = ts::take_shared<Profile>(test);
+            let mut profile = ts::take_shared<Profile>(test);
             let ctx = ts::ctx(test);
             let admin_cap = core::mint_for_testing(ctx);
             // The new value should be higher than the current one
@@ -352,7 +347,7 @@ module recrd::profile_test {
     #[test]
     #[expected_failure(abort_code = ENotAuthorized)]
     public fun trying_to_read_access_of_not_registered_address() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let test = &mut scenario;
 
         create_profile(test);

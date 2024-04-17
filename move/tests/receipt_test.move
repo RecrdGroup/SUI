@@ -2,7 +2,6 @@
 module recrd::receipt_test {
     // === Imports ===
     use sui::test_scenario::{Self as ts};
-    use sui::object;
     use recrd::core;
     use recrd::receipt::{Self, Receipt};
 
@@ -18,7 +17,7 @@ module recrd::receipt_test {
     
     #[test]
     public fun mints_and_burns_receipt() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         core::init_for_testing(ts::ctx(&mut scenario));
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 

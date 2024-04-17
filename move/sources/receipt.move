@@ -3,19 +3,14 @@
 
 module recrd::receipt {
     // === Imports ===
-    use sui::object::{Self, UID, ID};
-    use sui::transfer::{Self, Receiving};
-    use sui::tx_context::TxContext;
-    use recrd::core::{Self, AdminCap, Registry};
-
-    // === Friends ===
-    friend recrd::profile;
+    use sui::transfer::{Receiving};
+    use recrd::core::{AdminCap, Registry};
 
     // === Errors ===
     const EWrongVersion: u64 = 1;
 
     // === Structs ===
-    struct Receipt has key {
+    public struct Receipt has key {
         id: UID,
         master_id: ID,
         user_profile: address,
@@ -38,7 +33,7 @@ module recrd::receipt {
     ) {
         // Don't allow the issuance of new receipts if the core VERSION is not the same
         // with the version on Registry.
-        assert!(core::is_valid_version(registry), EWrongVersion);
+        assert!(registry.is_valid_version(), EWrongVersion);
 
         transfer::transfer(Receipt {
             id: object::new(ctx),
@@ -53,13 +48,14 @@ module recrd::receipt {
     public fun burn(receipt: Receipt): (ID, address) {
         // deconstruct and burn receipt
         let Receipt { id, master_id, user_profile } = receipt;
-        object::delete(id);
+        id.delete();
+        
        (master_id, user_profile)
     }
 
     /// Sender receives a receipt after the purchase resolves successfully for both
     /// parties.
-    public(friend) fun receive(
+    public(package) fun receive(
         profile_id: &mut UID, receipt: Receiving<Receipt>
     ): Receipt {
         transfer::receive<Receipt>(profile_id, receipt)

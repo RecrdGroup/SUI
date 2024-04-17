@@ -5,10 +5,7 @@
 module recrd::master_test {
     // === Imports ===
     use std::string::{String, utf8};
-    use std::option::{Self, Option};
-
     use sui::test_scenario::{Self as ts, Scenario};
-    use sui::object::{Self, ID};
     use sui::display::{Self, Display};
     use sui::vec_map::{Self};
 
@@ -45,7 +42,7 @@ module recrd::master_test {
 
     #[test]
     public fun initializes() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
 
         master::init_for_testing(ts::ctx(&mut scenario));
 
@@ -116,7 +113,7 @@ module recrd::master_test {
 
     #[test]
     public fun mints_video_master() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
         let master = mint_master<Video>(
@@ -217,7 +214,7 @@ module recrd::master_test {
 
     #[test]
     public fun mints_audio_master() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
         let master = mint_master<Sound>(
@@ -319,7 +316,7 @@ module recrd::master_test {
 
     #[test]
     public fun burns_metadata() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
         
         let master = mint_master<Video>(
@@ -342,10 +339,10 @@ module recrd::master_test {
 
     #[test]
     public fun updates_master() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
-        let master = mint_master<Video>(
+        let mut master = mint_master<Video>(
             &mut scenario,
             utf8(b"Test Video Master"),
             option::some<ID>(object::id_from_address(PARENT_REF)),
@@ -403,7 +400,7 @@ module recrd::master_test {
 
     #[test]
     public fun updates_metadata() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
         let master = mint_master<Video>(
@@ -416,7 +413,7 @@ module recrd::master_test {
         // Update Metadata
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let metadata = ts::take_shared<Metadata<Video>>(&scenario);
+            let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             
             master::set_title(&mut metadata, utf8(b"Updated Title"));
             master::set_description(&mut metadata, utf8(b"Updated Description"));
@@ -503,7 +500,7 @@ module recrd::master_test {
 
     #[test]
     public fun adds_hashtags() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
         let master = mint_master<Video>(
@@ -516,7 +513,7 @@ module recrd::master_test {
         // Add 2 new hashtags
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let metadata = ts::take_shared<Metadata<Video>>(&scenario);
+            let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             master::add_hashtag(&admin_cap, &mut metadata, utf8(b"new"));
             master::add_hashtag(&admin_cap, &mut metadata, utf8(b"tag"));
             ts::return_shared(metadata);
@@ -546,7 +543,7 @@ module recrd::master_test {
 
     #[test]
     public fun removes_hashtag() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
         let master = mint_master<Video>(
@@ -559,7 +556,7 @@ module recrd::master_test {
         // Remove hashtag
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let metadata = ts::take_shared<Metadata<Video>>(&scenario);
+            let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             master::remove_hashtag(&admin_cap, &mut metadata, utf8(b"master"));
             ts::return_shared(metadata);
         };
@@ -587,10 +584,10 @@ module recrd::master_test {
     #[test]
     #[expected_failure(abort_code = ESuspendedItemCannotBeListed)]
     public fun aborts_on_listing_suspended_master() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
-        let master = mint_master<Video>(
+        let mut master = mint_master<Video>(
             &mut scenario,
             utf8(b"Test Video Master"),
             option::some<ID>(object::id_from_address(PARENT_REF)),
@@ -617,10 +614,10 @@ module recrd::master_test {
     #[test]
     #[expected_failure(abort_code = ESuspendedItemCannotBeRetained)]
     public fun aborts_on_retaining_suspended_master() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
-        let master = mint_master<Video>(
+        let mut master = mint_master<Video>(
             &mut scenario,
             utf8(b"Test Video Master"),
             option::some<ID>(object::id_from_address(PARENT_REF)),
@@ -647,7 +644,7 @@ module recrd::master_test {
     #[test]
     #[expected_failure(abort_code = EHashtagDoesNotExist)]
     public fun aborts_on_remove_non_existent_hashtag() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
         let master = mint_master<Video>(
@@ -659,7 +656,7 @@ module recrd::master_test {
 
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let metadata = ts::take_shared<Metadata<Video>>(&scenario);
+            let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             // Trying to remove a hashtag that doesn't exist
             master::remove_hashtag(&admin_cap, &mut metadata, utf8(b"non-existent"));
             ts::return_shared(metadata);
@@ -673,7 +670,7 @@ module recrd::master_test {
     #[test]
     #[expected_failure(abort_code = EInvalidNewRevenueTotal)]
     public fun aborts_on_invalid_new_revenue_total() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
         let master = mint_master<Video>(
@@ -686,7 +683,7 @@ module recrd::master_test {
         // Initial valid update
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let metadata = ts::take_shared<Metadata<Video>>(&scenario);
+            let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             master::set_revenue_total(&admin_cap, &mut metadata, 50);
             ts::return_shared(metadata);
         };
@@ -694,7 +691,7 @@ module recrd::master_test {
         // Follow-up invalid update
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let metadata = ts::take_shared<Metadata<Video>>(&scenario);
+            let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             master::set_revenue_total(&admin_cap, &mut metadata, 25);
             ts::return_shared(metadata);
         };
@@ -707,7 +704,7 @@ module recrd::master_test {
     #[test]
     #[expected_failure(abort_code = EInvalidNewRevenuePaid)]
     public fun aborts_on_invalid_new_revenue_paid() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
 
         let master = mint_master<Video>(
@@ -720,7 +717,7 @@ module recrd::master_test {
         // Initial valid update
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let metadata = ts::take_shared<Metadata<Video>>(&scenario);
+            let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             master::set_revenue_paid(&admin_cap, &mut metadata, 30);
             ts::return_shared(metadata);
         };
@@ -728,7 +725,7 @@ module recrd::master_test {
         // Follow-up invalid update
         ts::next_tx(&mut scenario, ADMIN);
         {
-            let metadata = ts::take_shared<Metadata<Video>>(&scenario);
+            let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             master::set_revenue_paid(&admin_cap, &mut metadata, 15);
             ts::return_shared(metadata);
         };

@@ -13,7 +13,7 @@ module recrd::core_test {
 
     #[test]
     public fun initializes() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
         let test = &mut scenario;
         let ctx = ts::ctx(test);
 
@@ -30,7 +30,7 @@ module recrd::core_test {
 
     #[test]
     public fun mints_new_admin_cap() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
 
         core::init_for_testing(ts::ctx(&mut scenario));
         master::init_for_testing(ts::ctx(&mut scenario));
@@ -50,7 +50,7 @@ module recrd::core_test {
 
     #[test]
     public fun burns_admin_cap() {
-        let scenario = ts::begin(ADMIN);
+        let mut scenario = ts::begin(ADMIN);
 
         core::init_for_testing(ts::ctx(&mut scenario));
         master::init_for_testing(ts::ctx(&mut scenario));

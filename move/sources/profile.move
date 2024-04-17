@@ -9,9 +9,7 @@
 module recrd::profile {
 
   // === Imports ===
-  use sui::tx_context::{Self, TxContext};
-  use sui::object::{Self, UID, ID};
-  use sui::transfer::{Self, Receiving};
+  use sui::transfer::{Receiving};
   use sui::table::{Self, Table};
   use std::string::{String};
 
@@ -20,7 +18,8 @@ module recrd::profile {
   use recrd::master::{Self, Master};
   use recrd::receipt::{Self, Receipt};
 
-  // === Friends ===
+  // === Custom Receivers ===
+  use fun new_cap_ as ID.new_cap_;
 
   // === Errors ===
   const ENewValueShouldBeHigher: u64 = 0;
@@ -57,12 +56,12 @@ module recrd::profile {
   // === Structs ===
 
   /// A Promise hot potato to ensure Master is returned to profile when borrowed.
-  struct Promise {
+  public struct Promise {
     master_id: ID,
     profile: address
   }
 
-  struct Profile has key, store {
+  public struct Profile has key, store {
     // unique id for the profile object
     id: UID,
     // user ID derived from RECRD app db
@@ -89,7 +88,7 @@ module recrd::profile {
   }
 
   // Profile identity for users to link their account to their Profile. 
-  struct Identity has key, store {
+  public struct Identity has key, store {
     id: UID,
     profile: ID,
   }
@@ -116,20 +115,20 @@ module recrd::profile {
       commission_revenue: 0,
     };
 
-    let profile_id = *object::uid_as_inner(&profile.id);
+    let profile_id = profile.id.to_inner();
 
     // Make `Profile` a shared object. 
     transfer::public_share_object(profile);
 
     // Give the user borrow access by default.
-    new_cap_(profile_id, ctx)
+    profile_id.new_cap_(ctx)
   }
 
   /// Admin can send more Identitys to users that have existing Profile. 
   public fun new_cap(
     _: &AdminCap, profile: &Profile, ctx: &mut TxContext
   ): Identity {
-    new_cap_(*object::uid_as_inner(&profile.id), ctx)
+    profile.id.to_inner().new_cap_(ctx)
   }
 
   /// Admin authorizes user with level of access to the profile.
@@ -139,14 +138,14 @@ module recrd::profile {
     // Users access level should be in the range of (0, 200)
     assert!(access > 0 && access <= 250, EAccessLevelOutOfRange);
     
-    table::add(&mut self.authorizations, addr, access);
+    self.authorizations.add(addr, access);
   }
 
   /// Admin removes user's access to the profile.
   public fun deauthorize(
     _: &AdminCap, self: &mut Profile, user: address
   ) {
-    table::remove(&mut self.authorizations, user);
+    self.authorizations.remove(user);
   }
 
   /// Admin can receive any `T` object from `Profile`.
@@ -162,17 +161,17 @@ module recrd::profile {
   ): (Master<T>, Promise) {
     // Check whether sender exists in authorization table. 
     assert!(
-      table::contains(&self.authorizations, tx_context::sender(ctx)), 
+      self.authorizations.contains(ctx.sender()),
       ENotAuthorized
     );
 
     // Users that have access above the BORROW_ACCESS threshold can borrow the master
     assert!(
-      *table::borrow(&self.authorizations, tx_context::sender(ctx)) >= BORROW_ACCESS,
+      *self.authorizations.borrow(ctx.sender()) >= BORROW_ACCESS,
       EInvalidAccessRights
     );
 
-    let master = receive_master_<T>(self, master);
+    let master = self.receive_master_<T>(master);
 
     let promise = Promise { 
       master_id: object::id(&master),
@@ -204,7 +203,7 @@ module recrd::profile {
     let (master_id, user_profile) = receipt::burn(receipt);
 
     // Receive the master from the seller profile
-    let master = receive_master_<T>(seller_profile, master);
+    let mut master = seller_profile.receive_master_<T>(master);
 
     // Validate the master id from the receipt and the master object
     assert!(object::id(&master) == master_id, EInvalidObject);
@@ -230,7 +229,7 @@ module recrd::profile {
   // Authorized addresses can update username.
   public fun update_username(self: &mut Profile, new_username: String, ctx: &mut TxContext) {
     // Only addresses in the authorizations table can update.
-    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
     self.username = new_username
   }
 
@@ -239,7 +238,7 @@ module recrd::profile {
     self: &mut Profile, new_watch_time: u64, ctx: &mut TxContext
   ) {
     // Only addresses in the authorizations table can update.
-    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
     // Make sure the watch_time is greater than the current watch_time.
     assert!(new_watch_time > self.watch_time, ENewValueShouldBeHigher);
@@ -252,7 +251,7 @@ module recrd::profile {
     self: &mut Profile, new_videos_watched: u64, ctx: &mut TxContext
   ) {
     // Only addresses in the authorizations table can update.
-    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
     // New number of videos watched should greater than current.
     assert!(new_videos_watched > self.videos_watched, ENewValueShouldBeHigher);
@@ -265,7 +264,7 @@ module recrd::profile {
     self: &mut Profile, new_adverts_watched: u64, ctx: &mut TxContext
   ) {
     // Only addresses in the authorizations table can update.
-    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
     // New number of adverts watched should greater than current. 
     assert!(new_adverts_watched > self.adverts_watched, ENewValueShouldBeHigher);
@@ -278,7 +277,7 @@ module recrd::profile {
     self: &mut Profile, new_number_of_followers: u64, ctx: &mut TxContext
   ) {
     // Only addresses in the authorizations table can update.
-    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
     self.number_of_followers = new_number_of_followers;
   }
@@ -288,7 +287,7 @@ module recrd::profile {
     self: &mut Profile, new_number_of_following: u64, ctx: &mut TxContext
   ) {
     // Only addresses in the authorizations table can update.
-    assert!(table::contains(&self.authorizations, tx_context::sender(ctx)), ENotAuthorized);
+    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
     self.number_of_following = new_number_of_following;
   }
@@ -331,8 +330,8 @@ module recrd::profile {
   // Returns the level of access for given address.
   public fun access_rights(self: &Profile, user: address): u8 {
     // First checks whether the address exists in the authorizations table.
-    assert!(table::contains(&self.authorizations, user), ENotAuthorized);
-    *table::borrow(&self.authorizations, user)
+    assert!(self.authorizations.contains(user), ENotAuthorized);
+    *self.authorizations.borrow(user)
   }
 
   // Updates the watch time for given profile.
@@ -393,9 +392,9 @@ module recrd::profile {
     assert!(new_access >= 0 && new_access <= 250, EAccessLevelOutOfRange);
 
     // Check whether given address exists in authorization table. 
-    assert!(table::contains(&self.authorizations, addr), ENotAuthorized);
+    assert!(self.authorizations.contains(addr), ENotAuthorized);
 
-    let current_access = table::borrow_mut(&mut self.authorizations, addr);
+    let current_access = self.authorizations.borrow_mut(addr);
     *current_access = new_access;
   }
 
@@ -433,8 +432,8 @@ module recrd::profile {
       commission_revenue: _,
     } = profile;
 
-    object::delete(id);
-    table::drop(authorizations);
+    id.delete();
+    authorizations.drop();
   }
 
 }

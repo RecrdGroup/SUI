@@ -8,22 +8,10 @@
 module recrd::master {
 
   // === Imports ===
-
   use std::string::{String, utf8};
-  use std::option::Option;
-  use std::vector;
-  
-  use sui::object::{Self, UID, ID};
-  use sui::tx_context::{Self, TxContext};
   use sui::package;
-  use sui::transfer;
   use sui::display;
   use recrd::core::AdminCap;
-
-  // === Friends ===
-  friend recrd::profile;
-  #[test_only]
-  friend recrd::master_test;
   
   // === Errors ===
   const EHashtagDoesNotExist: u64 = 1;
@@ -40,14 +28,14 @@ module recrd::master {
   // === Structs ===
 
   // Define an OTW to the `Publisher` object for the sender.
-  struct MASTER has drop {}
+  public struct MASTER has drop {}
 
   // Available types for T in Master and Metadata.
-  struct Video has drop {}
-  struct Sound has drop {}
+  public struct Video has drop {}
+  public struct Sound has drop {}
 
   // Master object that will be the proof of ownership for the master.
-  struct Master<phantom T> has key, store {
+  public struct Master<phantom T> has key, store {
     // unique ID for master
     id: UID,
     // reference ID of the master metadata object
@@ -63,7 +51,7 @@ module recrd::master {
   }
 
   // Master metadata object that will hold all master-related metadata.
-  struct Metadata<phantom T> has key, store {
+  public struct Metadata<phantom T> has key, store {
     // unique ID for master metadata
     id: UID,
     // points to Master<T> proof of ownership
@@ -121,18 +109,18 @@ module recrd::master {
     ];
 
     // Create and populate display for `Master<Video>`
-    let master_video_display = display::new_with_fields<Master<Video>>(
+    let mut master_video_display = display::new_with_fields<Master<Video>>(
       &publisher, master_keys, master_values, ctx
     );
 
-    display::update_version(&mut master_video_display);
+    master_video_display.update_version();
 
     // Create and populate display for `Master<Sound>`
-    let master_sound_display = display::new_with_fields<Master<Sound>>(
+    let mut master_sound_display = display::new_with_fields<Master<Sound>>(
       &publisher, master_keys, master_values, ctx
     );
 
-    display::update_version(&mut master_sound_display);
+    master_sound_display.update_version();
 
     // Create the display for `Metadata<T>`
     let metadata_keys = vector[
@@ -160,18 +148,18 @@ module recrd::master {
     ];
 
     // Create and populate display for `Metadata<Video>`
-    let metadata_video_display = display::new_with_fields<Metadata<Video>>(
+    let mut metadata_video_display = display::new_with_fields<Metadata<Video>>(
       &publisher, metadata_keys, metadata_values, ctx
     );
 
-    display::update_version(&mut metadata_video_display);
+    metadata_video_display.update_version();
 
     // Create and populate display for `Metadata<Sound>`
-    let metadata_sound_display = display::new_with_fields<Metadata<Sound>>(
+    let mut metadata_sound_display = display::new_with_fields<Metadata<Sound>>(
       &publisher, metadata_keys, metadata_values, ctx
     );
 
-    display::update_version(&mut metadata_sound_display);
+    metadata_sound_display.update_version();
 
     transfer::public_transfer(publisher, tx_context::sender(ctx));
     transfer::public_transfer(master_video_display, tx_context::sender(ctx));
@@ -208,11 +196,11 @@ module recrd::master {
   ): Master<T> {
     // Create a new UID for the master object
     let master_uid = object::new(ctx);
-    let master_id = object::uid_to_inner(&master_uid);
+    let master_id = master_uid.to_inner();
 
     // Create a new UID for the metadata object
     let metadata_uid = object::new(ctx);
-    let metadata_id = object::uid_to_inner(&metadata_uid);
+    let metadata_id = metadata_uid.to_inner();
 
     // Create the metadata object
     let metadata = Metadata<T> {
@@ -262,7 +250,7 @@ module recrd::master {
     } = master;
 
     // Delete the `Master<T>` object and its UID.
-    object::delete(id);
+    id.delete();
 
     metadata_ref
   }
@@ -290,7 +278,7 @@ module recrd::master {
     } = metadata;
 
     // Delete the `Metadata<T>` object and its UID.
-    object::delete(id);
+    id.delete()
   }
   
   // === Master Accessors ===
@@ -430,7 +418,7 @@ module recrd::master {
   }
 
   // Modules can update the sale status internally.
-  public(friend) fun update_sale_status<T>(master: &mut Master<T>, sale_status: u8) {
+  public(package) fun update_sale_status<T>(master: &mut Master<T>, sale_status: u8) {
     master.sale_status = sale_status;
   }
 
@@ -476,9 +464,9 @@ module recrd::master {
   public fun remove_hashtag<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, hashtag: String,
   ) {
-    let (exists, index) = vector::index_of(&metadata.hashtags, &hashtag);
-    assert!(exists, EHashtagDoesNotExist);
-    vector::remove(&mut metadata.hashtags, index);
+    let (it_exists, index) = metadata.hashtags.index_of(&hashtag);
+    assert!(it_exists, EHashtagDoesNotExist);
+    metadata.hashtags.remove(index);
   }
 
   // Admin can update the royalty percentage BP for given Metadata.

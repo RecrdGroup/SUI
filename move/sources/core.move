@@ -7,13 +7,10 @@
 module recrd::core {
 
   // === Imports ===
-
-  use sui::object::{Self, UID};
-  use sui::tx_context::{Self, TxContext};
-  use sui::transfer;
-  use sui::package::{Self, Publisher};
+  use sui::package::{Publisher};
 
   // === Friends ===
+  // public use fun is_valid_version as Registry.is_valid_version;
 
   // === Errors ===
   const EWrongVersion: u64 = 0;
@@ -27,7 +24,7 @@ module recrd::core {
   // === Structs ===
 
   /// Define an admin capability for giving permission for certain actions.
-  struct AdminCap has key, store {
+  public struct AdminCap has key, store {
     id: UID,
   }
 
@@ -35,7 +32,7 @@ module recrd::core {
   /// This allows or disables the issuance of new receipts.
   /// Allowed as long as Registry and VERSION are equal. 
   /// Not allowed if Registry has not been bumped to VERSION.
-  struct Registry has key {
+  public struct Registry has key {
     id: UID,
     version: u64,
   }
@@ -56,7 +53,7 @@ module recrd::core {
     };
 
     // Transfer the admin capability to the publisher of the contract.
-    transfer::public_transfer(admin_cap, tx_context::sender(ctx));
+    transfer::public_transfer(admin_cap, ctx.sender());
   }
 
 
@@ -66,7 +63,7 @@ module recrd::core {
   /// Requires Publisher for authentication.
   public fun new_admincap(publisher: &Publisher, ctx: &mut TxContext): AdminCap {
     // Make sure the publisher corresponds to the package that creates AdminCap.
-    assert!(package::from_package<AdminCap>(publisher), EWrongPublisher);
+    assert!(publisher.from_package<AdminCap>(), EWrongPublisher);
 
     AdminCap {
       id: object::new(ctx)
@@ -76,11 +73,11 @@ module recrd::core {
   /// Burns the `AdminCap` object.
   public fun burn_admincap(cap: AdminCap) {
     let AdminCap { id } = cap;
-    object::delete(id);
+    id.delete();
   }
 
   /// Admin can update the registry's version.
-  public fun bump_registry_version(_: &AdminCap, registry: &mut Registry) {
+  public fun bump_registry_version(registry: &mut Registry, _: &AdminCap) {
     registry.version = VERSION;
   }
 
