@@ -9,9 +9,6 @@ module recrd::core {
   // === Imports ===
   use sui::package::{Publisher};
 
-  // === Friends ===
-  // public use fun is_valid_version as Registry.is_valid_version;
-
   // === Errors ===
   const EWrongVersion: u64 = 0;
   const EWrongPublisher: u64 = 1;
