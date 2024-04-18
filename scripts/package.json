@@ -2,18 +2,37 @@
   "name": "scripts",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "ts-node src/index"
+    "start": "ts-node src/index",
+    "testProfileNew": "ts-node src/tests/profile/testProfileNew.ts",
+    "testProfileAuthorize": "ts-node src/tests/profile/testProfileAuthorize.ts",
+    "testProfileDeauthorize": "ts-node src/tests/profile/testProfileDeauthorize.ts",
+    "testProfileUpdate": "ts-node src/tests/profile/testProfileUpdate.ts",
+    "testProfileReceive": "ts-node src/tests/profile/testProfileReceive.ts",
+    "testMasterMint": "ts-node src/tests/master/testMasterMint.ts",
+    "testMasterReceiveAndBurn": "ts-node src/tests/master/testMasterReceiveAndBurn.ts",
+    "testGetMaster": "ts-node src/tests/master/testGetMaster.ts",
+    "testGetMasterMetadata": "ts-node src/tests/master/testGetMasterMetadata.ts",
+    "testMasterMetadataBurn": "ts-node src/tests/master/testMasterMetadataBurn.ts",
+    "testReceiptMint": "ts-node src/tests/receipt/testReceiptMint.ts",
+    "testMasterBuy": "ts-node src/tests/master/testMasterBuy.ts",
+    "testMasterSetOnSale": "ts-node src/tests/master/testMasterSetOnSale.ts",
+    "testMasterRetain": "ts-node src/tests/master/testMasterRetain.ts",
+    "testMasterSuspend": "ts-node src/tests/master/testMasterSuspend.ts"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.11.20"
-  },
-  "dependencies": {
+    "@types/node": "^20.12.2",
+    "@mysten/bcs": "^0.11.1",
+    "@mysten/kiosk": "^0.8.5",
     "@mysten/sui.js": "^0.50.1",
     "dotenv": "^16.4.5"
+  },
+  "dependencies": {
+    "env-cmd": "^10.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.3"
   }
 }

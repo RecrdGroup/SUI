@@ -8,41 +8,34 @@
 module recrd::master {
 
   // === Imports ===
-
   use std::string::{String, utf8};
-  use std::option::Option;
-  use std::vector;
-  
-  use sui::object::{Self, UID, ID};
-  use sui::tx_context::{Self, TxContext};
   use sui::package;
-  use sui::transfer;
   use sui::display;
   use recrd::core::AdminCap;
-
-  // === Friends ===
-
+  
   // === Errors ===
   const EHashtagDoesNotExist: u64 = 1;
   const EInvalidNewRevenueTotal: u64 = 2;
   const EInvalidNewRevenuePaid: u64 = 3;
-  const EInvalidSaleStatus: u64 = 4;
+  const ESuspendedItemCannotBeListed: u64 = 4;
+  const ESuspendedItemCannotBeRetained: u64 = 5;
 
   // === Constants ===
-  const ON_SALE: u8 = 1;
-  const SUSPENDED: u8 = 2;
+  const RETAINED: u8 = 1;
+  const ON_SALE: u8 = 2;
+  const SUSPENDED: u8 = 3;
 
   // === Structs ===
 
   // Define an OTW to the `Publisher` object for the sender.
-  struct MASTER has drop {}
+  public struct MASTER has drop {}
 
   // Available types for T in Master and Metadata.
-  struct Video has drop {}
-  struct Sound has drop {}
+  public struct Video has drop {}
+  public struct Sound has drop {}
 
   // Master object that will be the proof of ownership for the master.
-  struct Master<phantom T> has key, store {
+  public struct Master<phantom T> has key, store {
     // unique ID for master
     id: UID,
     // reference ID of the master metadata object
@@ -58,7 +51,7 @@ module recrd::master {
   }
 
   // Master metadata object that will hold all master-related metadata.
-  struct Metadata<phantom T> has key, store {
+  public struct Metadata<phantom T> has key, store {
     // unique ID for master metadata
     id: UID,
     // points to Master<T> proof of ownership
@@ -116,18 +109,18 @@ module recrd::master {
     ];
 
     // Create and populate display for `Master<Video>`
-    let master_video_display = display::new_with_fields<Master<Video>>(
+    let mut master_video_display = display::new_with_fields<Master<Video>>(
       &publisher, master_keys, master_values, ctx
     );
 
-    display::update_version(&mut master_video_display);
+    master_video_display.update_version();
 
     // Create and populate display for `Master<Sound>`
-    let master_sound_display = display::new_with_fields<Master<Sound>>(
+    let mut master_sound_display = display::new_with_fields<Master<Sound>>(
       &publisher, master_keys, master_values, ctx
     );
 
-    display::update_version(&mut master_sound_display);
+    master_sound_display.update_version();
 
     // Create the display for `Metadata<T>`
     let metadata_keys = vector[
@@ -155,18 +148,18 @@ module recrd::master {
     ];
 
     // Create and populate display for `Metadata<Video>`
-    let metadata_video_display = display::new_with_fields<Metadata<Video>>(
+    let mut metadata_video_display = display::new_with_fields<Metadata<Video>>(
       &publisher, metadata_keys, metadata_values, ctx
     );
 
-    display::update_version(&mut metadata_video_display);
+    metadata_video_display.update_version();
 
     // Create and populate display for `Metadata<Sound>`
-    let metadata_sound_display = display::new_with_fields<Metadata<Sound>>(
+    let mut metadata_sound_display = display::new_with_fields<Metadata<Sound>>(
       &publisher, metadata_keys, metadata_values, ctx
     );
 
-    display::update_version(&mut metadata_sound_display);
+    metadata_sound_display.update_version();
 
     transfer::public_transfer(publisher, tx_context::sender(ctx));
     transfer::public_transfer(master_video_display, tx_context::sender(ctx));
@@ -177,9 +170,7 @@ module recrd::master {
 
   // === Public Functions ===
 
-  // === Admin Functions ===
-
-  /// Mints new `Master<T>` and `Metadata<T>` objects and returns `Master<T>`. 
+  /// Admin mints new `Master<T>` and `Metadata<T>` objects and returns `Master<T>`. 
   /// `Master<T>` is proof of ownership for the master by `creator_profile_id`
   /// and `Metadata<T>` holds all master-related metadata.
   /// Use `transfer::public_transfer(master, creator_profile_id)` to transfer
@@ -195,16 +186,21 @@ module recrd::master {
     royalty_percentage_bp: u16,
     master_metadata_parent: Option<ID>,
     master_metadata_origin: Option<ID>,
+    expressions: u64,
+    revenue_total: u64,
+    revenue_available: u64,
+    revenue_paid: u64,
+    revenue_pending: u64,
     sale_status: u8,
-    ctx: &mut TxContext,
+    ctx: &mut TxContext
   ): Master<T> {
     // Create a new UID for the master object
     let master_uid = object::new(ctx);
-    let master_id = object::uid_to_inner(&master_uid);
+    let master_id = master_uid.to_inner();
 
     // Create a new UID for the metadata object
     let metadata_uid = object::new(ctx);
-    let metadata_id = object::uid_to_inner(&metadata_uid);
+    let metadata_id = metadata_uid.to_inner();
 
     // Create the metadata object
     let metadata = Metadata<T> {
@@ -219,18 +215,16 @@ module recrd::master {
       royalty_percentage_bp,
       master_metadata_parent,
       master_metadata_origin,
-      // TODO: update the following fields
-      expressions: 0, // default to 0
-      revenue_total: 0, // default to 0
-      revenue_available: 0, // default to 0
-      revenue_paid: 0, // default to 0
-      revenue_pending: 0, // default to 0
+      expressions,
+      revenue_total, 
+      revenue_available,
+      revenue_paid,
+      revenue_pending,
     };
 
     // Publicly share the metadata object. 
     transfer::public_share_object(metadata);
 
-    // @TODO: shouldn't we just transfer it to the profile since its an argument we pass in the new function?
     // Create and return the `Master<T>` proof of ownership. 
     Master<T> {
       id: master_uid,
@@ -242,12 +236,9 @@ module recrd::master {
     }
   }
 
-  /// Burn the `Master<T>` proof of ownership and return the reference ID of 
+  /// Admin burns the `Master<T>` proof of ownership and returns the reference ID of 
   /// the `Metadata<T>` object that was associated with the `Master<T>`.
-  public fun admin_burn_master<T: drop>(
-    _: &AdminCap,
-    master: Master<T>,
-  ): ID {
+  public fun burn_master<T: drop>(_: &AdminCap, master: Master<T>): ID {
     // Deconstruct the `Master<T>` object. 
     let Master<T> {
       id, 
@@ -259,16 +250,13 @@ module recrd::master {
     } = master;
 
     // Delete the `Master<T>` object and its UID.
-    object::delete(id);
+    id.delete();
 
     metadata_ref
   }
   
-  /// Burn the `Metadata<T>` object.
-  public fun admin_burn_metadata<T: drop>(
-    _: &AdminCap,
-    metadata: Metadata<T>,
-  ) {
+  /// Admin burns the `Metadata<T>` object.
+  public fun burn_metadata<T: drop>(_: &AdminCap, metadata: Metadata<T>) {
     // Deconstruct the `Metadata<T>` object. 
     let Metadata<T> {
       id, 
@@ -290,228 +278,228 @@ module recrd::master {
     } = metadata;
 
     // Delete the `Metadata<T>` object and its UID.
-    object::delete(id);
+    id.delete()
   }
   
-  // --- Accessors ---
+  // === Master Accessors ===
 
-  // ~~~ Master ~~~
-
-  public fun metadata_ref<T>(master: &Master<T>): ID {
-    master.metadata_ref
+  public fun metadata_ref<T>(master: &Master<T>): &ID {
+    &master.metadata_ref
   }
 
-  public fun title<T>(master: &Master<T>): String {
-    master.title
+  public fun title<T>(master: &Master<T>): &String {
+    &master.title
   }
 
-  public fun image_url<T>(master: &Master<T>): String {
-    master.image_url
+  public fun image_url<T>(master: &Master<T>): &String {
+    &master.image_url
   }
 
-  public fun media_url<T>(master: &Master<T>): String {
-    master.media_url
+  public fun media_url<T>(master: &Master<T>): &String {
+    &master.media_url
   }
 
   public fun sale_status<T>(master: &Master<T>): u8 {
     master.sale_status
   }
 
-  // ~~~ Metadata ~~~
+  // === Metadata Accessors ===
 
-  public fun meta_master_id<T>(metadata: &Metadata<T>): ID {
-    metadata.master_id
+  // Returns the master ID associated with given metadata object.
+  public fun meta_master_id<T>(metadata: &Metadata<T>): &ID {
+    &metadata.master_id
   }
 
-  public fun meta_title<T>(metadata: &Metadata<T>): String {
-    metadata.title
+  // Returns the title for given metadata object.
+  public fun meta_title<T>(metadata: &Metadata<T>): &String {
+    &metadata.title
   }
 
-  public fun meta_description<T>(metadata: &Metadata<T>): String {
-    metadata.description
+  // Returns the description for given metadata object.
+  public fun meta_description<T>(metadata: &Metadata<T>): &String {
+    &metadata.description
   }
 
-  public fun meta_image_url<T>(metadata: &Metadata<T>): String {
-    metadata.image_url
+  // Returns the image URL for given metadata object.
+  public fun meta_image_url<T>(metadata: &Metadata<T>): &String {
+    &metadata.image_url
   }
 
-   public fun meta_media_url<T>(metadata: &Metadata<T>): String {
-    metadata.media_url
+  // Returns the media URL for given metadata object.
+  public fun meta_media_url<T>(metadata: &Metadata<T>): &String {
+    &metadata.media_url
   }
 
-  public fun meta_hashtags<T>(metadata: &Metadata<T>): vector<String> {
-    metadata.hashtags
+  // Returns vector of hashtags for given metadata object.
+  public fun meta_hashtags<T>(metadata: &Metadata<T>): &vector<String> {
+    &metadata.hashtags
   }
 
-  public fun meta_creator_profile_id<T>(metadata: &Metadata<T>): ID {
-    metadata.creator_profile_id
+  // Returns the creator's profile ID for given metadata object.
+  public fun meta_creator_profile_id<T>(metadata: &Metadata<T>): &ID {
+    &metadata.creator_profile_id
   }
 
+  // Returns the royalty percentage for given metadata object.
   public fun meta_royalty_percentage_bp<T>(metadata: &Metadata<T>): u16 {
     metadata.royalty_percentage_bp
   }
 
-  public fun meta_parent<T>(metadata: &Metadata<T>): Option<ID> {
-    metadata.master_metadata_parent
+  // Returns the parent metadata ID for given metadata object.
+  public fun meta_parent<T>(metadata: &Metadata<T>): &Option<ID> {
+    &metadata.master_metadata_parent
   }
 
-  public fun meta_origin<T>(metadata: &Metadata<T>): Option<ID> {
-    metadata.master_metadata_origin
+  // Returns the origin metadata ID for given metadata object.
+  public fun meta_origin<T>(metadata: &Metadata<T>): &Option<ID> {
+    &metadata.master_metadata_origin
   }
 
+  // Returns the number of expressions for given metadata object.
   public fun meta_expressions<T>(metadata: &Metadata<T>): u64 {
     metadata.expressions
   }
 
+  // Returns the total revenue for given metadata object.
   public fun meta_revenue_total<T>(metadata: &Metadata<T>): u64 {
     metadata.revenue_total
   }
 
+  // Returns the available revenue for given metadata object.
   public fun meta_revenue_available<T>(metadata: &Metadata<T>): u64 {
     metadata.revenue_available
   }
 
+  // Returns the amount of revenue paid for given metadata object.
   public fun meta_revenue_paid<T>(metadata: &Metadata<T>): u64 {
     metadata.revenue_paid
   }
 
+  // Returns the amount of revenue pending to be paid for given metadata object.
   public fun meta_revenue_pending<T>(metadata: &Metadata<T>): u64 {
     metadata.revenue_pending
   }
 
-  // --- Setters & Mutations ---
-  // @TODO: to check access level for these functions
+  // === Master Setters ===
 
-  // ~~~ Master ~~~
-
-  // @TODO: probbaly should be removed, the metadata ref should always remain the same.
-  // Admin can update the metadata reference for a Master object.
-  // public fun set_metadata_ref<T>(
-  //   _: &AdminCap,
-  //   master: &mut Master<T>,
-  //   metadata_ref: ID,
-  // ) {
-  //   master.metadata_ref = metadata_ref;
-  // }
-
-
-  /// Sync Master title from Metadata object.
-  public fun sync_title<T>(
-    master: &mut Master<T>,
-    metadata: &Metadata<T>,
-  ) {
+  // Sync Master title with the title in Metadata.
+  public fun sync_title<T>(master: &mut Master<T>, metadata: &Metadata<T>) {
     master.title = metadata.title;
   }
 
-  /// Sync Master image URL from Metadata object.
-  public fun sync_image_url<T>(
-    master: &mut Master<T>,
-    metadata: &Metadata<T>,
-  ) {
+  // Sync Master image URL with the image URL in Metadata.
+  public fun sync_image_url<T>(master: &mut Master<T>, metadata: &Metadata<T>) {
     master.image_url = metadata.image_url;
   }
 
-  /// Sync Master media URL from Metadata object.
-  public fun sync_media_url<T>(
-    master: &mut Master<T>,
-    metadata: &Metadata<T>,
-  ) {
+  // Sync Master media URL with the media URL in Metadata.
+  public fun sync_media_url<T>(master: &mut Master<T>, metadata: &Metadata<T>) {
     master.media_url = metadata.media_url;
   }
 
-  /// Admin can update the sale status for a Master object.
-  public fun set_sale_status<T>(
-    _: &AdminCap,
-    master: &mut Master<T>,
-    sale_status: u8,
-  ) {
-    assert!(sale_status == ON_SALE || sale_status == SUSPENDED, EInvalidSaleStatus);
+  // Lists Master for sale by setting status to ON_SALE. 
+  public fun list<T>(master: &mut Master<T>) {
+    // Masters that are SUSPENDED cannot be set for sale. 
+    assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeListed);
+
+    master.sale_status = ON_SALE;
+  }
+
+  // Unlists Master from market by reverting status to RETAINED. 
+  public fun unlist<T>(master: &mut Master<T>) {
+    // Masters that are SUSPENDED cannot be set reverted to retained. 
+    assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeRetained);
+    master.sale_status = RETAINED;
+  }
+
+  // Admin can suspend a Master for violation.
+  public fun suspend<T>(_: &AdminCap, master: &mut Master<T>) {
+    master.sale_status = SUSPENDED
+  }
+
+  // Modules can update the sale status internally.
+  public(package) fun update_sale_status<T>(master: &mut Master<T>, sale_status: u8) {
     master.sale_status = sale_status;
   }
 
-  // ~~~ Metadata ~~~
+  // === Metadata Setters ===
 
-  /// Admin can update the title for a Metadata object.
-  public fun set_title<T>(_: &AdminCap, metadata: &mut Metadata<T>, title: String) {
+  // Updates the title for given Metadata.
+  public fun set_title<T>(metadata: &mut Metadata<T>, title: String) {
     metadata.title = title;
   }
 
-  /// Admin can update the description for a Metadata object.
-  public fun set_description<T>(
-    _: &AdminCap, metadata: &mut Metadata<T>, description: String,
-  ) {
+  // Updates the description for given Metadata.
+  public fun set_description<T>(metadata: &mut Metadata<T>, description: String) {
     metadata.description = description;
   }
 
-  /// Admin can update the image URL for a Metadata object.
-  public fun set_image_url<T>(
-    _: &AdminCap, metadata: &mut Metadata<T>, image_url: String,
-  ) {
+  // Updates the image URL for given Metadata.
+  public fun set_image_url<T>(metadata: &mut Metadata<T>, image_url: String) {
     metadata.image_url = image_url;
   }
   
-  /// Admin can update the media URL for a Metadata object.
+  // Admin can update the media URL for given Metadata.
   public fun set_media_url<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, media_url: String,
   ) {
     metadata.media_url = media_url;
   }
 
-  /// Admin can overwrite the hashtags for a Metadata object.
-  /// This will replace the existing hashtags.
+  // Admin can overwrite (replace) the hashtags for given Metadata.
   public fun set_hashtags<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, hashtags: vector<String>,
   ) {
     metadata.hashtags = hashtags;
   }
 
-  /// Admin can add a hashtag to the Metadata object.
+  // Admin can add a hashtag to given Metadata.
   public fun add_hashtag<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, hashtag: String,
   ) {
     vector::push_back(&mut metadata.hashtags, hashtag);
   }
 
-  /// Admin can remove a single hashtag from the Metadata object.
+  // Admin can remove a single hashtag from given Metadata.
   public fun remove_hashtag<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, hashtag: String,
   ) {
-    let (exists, index) = vector::index_of(&metadata.hashtags, &hashtag);
-    assert!(exists, EHashtagDoesNotExist);
-    vector::remove(&mut metadata.hashtags, index);
+    let (it_exists, index) = metadata.hashtags.index_of(&hashtag);
+    assert!(it_exists, EHashtagDoesNotExist);
+    metadata.hashtags.remove(index);
   }
 
-  /// Admin can update the royalty percentage BP for a Metadata object.
+  // Admin can update the royalty percentage BP for given Metadata.
   public fun set_royalty_percentage_bp<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, royalty_percentage_bp: u16,
   ) {
     metadata.royalty_percentage_bp = royalty_percentage_bp;
   }
 
-  /// Admin can update the master metadata parent for a Metadata object.
+  // Admin can update the master metadata parent for given Metadata.
   public fun set_metadata_parent<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, metadata_parent: Option<ID>,
   ) {
     metadata.master_metadata_parent = metadata_parent;
   }
 
-  /// Admin can update the master metadata origin for a Metadata object.
+  // Admin can update the master metadata origin for given Metadata.
   public fun set_metadata_origin<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, metadata_origin: Option<ID>,
   ) {
     metadata.master_metadata_origin = metadata_origin;
   }
 
-  /// Admin can update the expressions for a Metadata object.
+  /// Admin can update the expressions for given Metadata.
   public fun set_expressions<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, expressions: u64,
   ) {
     metadata.expressions = expressions;
   }
 
-  /// Admin can update the revenue total for a Metadata object.
-  /// The new revenue total must be greater than the existing revenue total.
-  /// This is to ensure that the revenue total is always increasing.
+  // Admin can update the revenue total for a Metadata object.
+  // The new revenue total must be greater than the existing revenue total.
+  // This is to ensure that the revenue total is always increasing.
   public fun set_revenue_total<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, revenue_total: u64,
   ) {
@@ -519,16 +507,16 @@ module recrd::master {
     metadata.revenue_total = revenue_total;
   }
 
-  /// Admin can update the revenue available for a Metadata object.
+  // Admin can update the revenue available for a Metadata object.
   public fun set_revenue_available<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, revenue_available: u64,
   ) {
     metadata.revenue_available = revenue_available;
   }
 
-  /// Admin can update the revenue paid for a Metadata object.
-  /// The new revenue paid must be greater than the existing revenue paid.
-  /// This is to ensure that the revenue paid is always increasing.
+  // Admin can update the revenue paid for a Metadata object.
+  // The new revenue paid must be greater than the existing revenue paid.
+  // This is to ensure that the revenue paid is always increasing.
   public fun set_revenue_paid<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, revenue_paid: u64,
   ) {
@@ -536,7 +524,7 @@ module recrd::master {
     metadata.revenue_paid = revenue_paid;
   }
 
-  /// Admin can update the revenue pending for a Metadata object.
+  // Admin can update the revenue pending for a Metadata object.
   public fun set_revenue_pending<T>(
     _: &AdminCap, metadata: &mut Metadata<T>, revenue_pending: u64,
   ) {
