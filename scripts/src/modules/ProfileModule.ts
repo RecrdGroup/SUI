@@ -50,8 +50,8 @@ export class ProfileModule {
       arguments: [
         txb.object(ADMIN_CAP),
         txb.pure(userId),
-        txb.pure(userAddress),
         txb.pure(username),
+        txb.pure(userAddress),
       ],
     });
 
