@@ -45,13 +45,15 @@ export class ProfileModule {
     const txb = new TransactionBlock();
 
     // Call the smart contract function to create a profile and the user identity
-    let identity = txb.moveCall({
+    txb.moveCall({
       target: `${PACKAGE_ID}::profile::new`,
-      arguments: [txb.object(ADMIN_CAP), txb.pure(userId), txb.pure(username)],
+      arguments: [
+        txb.object(ADMIN_CAP),
+        txb.pure(userId),
+        txb.pure(userAddress),
+        txb.pure(username),
+      ],
     });
-
-    // Transfer the Identity object to the user's account
-    txb.transferObjects([identity], userAddress);
 
     // Sign and execute the transaction as RECRD
     const response = await executeTransaction({ txb, signer });

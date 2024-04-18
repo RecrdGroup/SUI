@@ -28,8 +28,13 @@ module recrd::profile_test {
         ts::next_tx(scenario, ADMIN);
         let ctx = ts::ctx(scenario);
         let admin_cap = core::mint_for_testing(ctx);
-        let profile_cap = profile::new(&admin_cap, utf8(USER_ID), utf8(USERNAME), ctx);
-        transfer::public_transfer(profile_cap, USER);
+        profile::new(
+            &admin_cap, 
+            utf8(USER_ID), 
+            utf8(USERNAME), 
+            USER,
+            ctx
+        );
         core::burn_admincap(admin_cap);
     }
 

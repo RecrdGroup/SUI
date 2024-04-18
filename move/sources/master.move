@@ -283,20 +283,20 @@ module recrd::master {
   
   // === Master Accessors ===
 
-  public fun metadata_ref<T>(master: &Master<T>): ID {
-    master.metadata_ref
+  public fun metadata_ref<T>(master: &Master<T>): &ID {
+    &master.metadata_ref
   }
 
-  public fun title<T>(master: &Master<T>): String {
-    master.title
+  public fun title<T>(master: &Master<T>): &String {
+    &master.title
   }
 
-  public fun image_url<T>(master: &Master<T>): String {
-    master.image_url
+  public fun image_url<T>(master: &Master<T>): &String {
+    &master.image_url
   }
 
-  public fun media_url<T>(master: &Master<T>): String {
-    master.media_url
+  public fun media_url<T>(master: &Master<T>): &String {
+    &master.media_url
   }
 
   public fun sale_status<T>(master: &Master<T>): u8 {
@@ -306,38 +306,38 @@ module recrd::master {
   // === Metadata Accessors ===
 
   // Returns the master ID associated with given metadata object.
-  public fun meta_master_id<T>(metadata: &Metadata<T>): ID {
-    metadata.master_id
+  public fun meta_master_id<T>(metadata: &Metadata<T>): &ID {
+    &metadata.master_id
   }
 
   // Returns the title for given metadata object.
-  public fun meta_title<T>(metadata: &Metadata<T>): String {
-    metadata.title
+  public fun meta_title<T>(metadata: &Metadata<T>): &String {
+    &metadata.title
   }
 
   // Returns the description for given metadata object.
-  public fun meta_description<T>(metadata: &Metadata<T>): String {
-    metadata.description
+  public fun meta_description<T>(metadata: &Metadata<T>): &String {
+    &metadata.description
   }
 
   // Returns the image URL for given metadata object.
-  public fun meta_image_url<T>(metadata: &Metadata<T>): String {
-    metadata.image_url
+  public fun meta_image_url<T>(metadata: &Metadata<T>): &String {
+    &metadata.image_url
   }
 
   // Returns the media URL for given metadata object.
-  public fun meta_media_url<T>(metadata: &Metadata<T>): String {
-    metadata.media_url
+  public fun meta_media_url<T>(metadata: &Metadata<T>): &String {
+    &metadata.media_url
   }
 
   // Returns vector of hashtags for given metadata object.
-  public fun meta_hashtags<T>(metadata: &Metadata<T>): vector<String> {
-    metadata.hashtags
+  public fun meta_hashtags<T>(metadata: &Metadata<T>): &vector<String> {
+    &metadata.hashtags
   }
 
   // Returns the creator's profile ID for given metadata object.
-  public fun meta_creator_profile_id<T>(metadata: &Metadata<T>): ID {
-    metadata.creator_profile_id
+  public fun meta_creator_profile_id<T>(metadata: &Metadata<T>): &ID {
+    &metadata.creator_profile_id
   }
 
   // Returns the royalty percentage for given metadata object.
@@ -346,13 +346,13 @@ module recrd::master {
   }
 
   // Returns the parent metadata ID for given metadata object.
-  public fun meta_parent<T>(metadata: &Metadata<T>): Option<ID> {
-    metadata.master_metadata_parent
+  public fun meta_parent<T>(metadata: &Metadata<T>): &Option<ID> {
+    &metadata.master_metadata_parent
   }
 
   // Returns the origin metadata ID for given metadata object.
-  public fun meta_origin<T>(metadata: &Metadata<T>): Option<ID> {
-    metadata.master_metadata_origin
+  public fun meta_origin<T>(metadata: &Metadata<T>): &Option<ID> {
+    &metadata.master_metadata_origin
   }
 
   // Returns the number of expressions for given metadata object.

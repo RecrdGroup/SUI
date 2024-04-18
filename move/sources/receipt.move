@@ -43,9 +43,8 @@ module recrd::receipt {
     }
 
     /// Receipt is burned to get the `master_id` and `user_profile` of the purchase.
-    /// The `master_id` is returned to the sender to be used in the next moveCall of 
-    /// the PTB.
-    public fun burn(receipt: Receipt): (ID, address) {
+    /// The `master_id` is returned to the sender to be used in receiving `Master`.
+    public(package) fun burn(receipt: Receipt): (ID, address) {
         // deconstruct and burn receipt
         let Receipt { id, master_id, user_profile } = receipt;
         id.delete();

@@ -30,6 +30,7 @@ module recrd::profile {
   const ENotAuthorized: u64 = 5;
   const EAccessLevelOutOfBounds: u64 = 6;
   const EMasterNotOnSale: u64 = 7;
+  const EUpdateNotAuthorized: u64 = 8;
 
   // === Constants ===
 
@@ -61,7 +62,7 @@ module recrd::profile {
     profile: address
   }
 
-  public struct Profile has key, store {
+  public struct Profile has key {
     // unique id for the profile object
     id: UID,
     // user ID derived from RECRD app db
@@ -88,7 +89,7 @@ module recrd::profile {
   }
 
   // Profile identity for users to link their account to their Profile. 
-  public struct Identity has key, store {
+  public struct Identity has key {
     id: UID,
     profile: ID,
   }
@@ -99,8 +100,8 @@ module recrd::profile {
   /// `Profile` will be publicly shared and `Identity` will be returned, so 
   /// that it can be transferred via PTBs.
   public fun new(
-    _: &AdminCap, user_id: String, username: String, ctx: &mut TxContext,
-  ): Identity {
+    _: &AdminCap, user_id: String, username: String, addr: address, ctx: &mut TxContext
+  ) {
     let profile = Profile {
       id: object::new(ctx),
       user_id,
@@ -118,10 +119,11 @@ module recrd::profile {
     let profile_id = profile.id.to_inner();
 
     // Make `Profile` a shared object. 
-    transfer::public_share_object(profile);
+    transfer::share_object(profile);
 
-    // Give the user borrow access by default.
-    profile_id.new_cap_(ctx)
+    // Give the user an Identity cap tied to their Profile.
+    let identity = profile_id.new_cap_(ctx);
+    transfer::transfer(identity, addr);
   }
 
   /// Admin can send more Identitys to users that have existing Profile. 
@@ -200,7 +202,7 @@ module recrd::profile {
     let receipt = receipt::receive(&mut buyer_profile.id, receipt);
 
     // Burn the receipt to get the master id and the user profile
-    let (master_id, user_profile) = receipt::burn(receipt);
+    let (master_id, user_profile) = receipt.burn();
 
     // Receive the master from the seller profile
     let mut master = seller_profile.receive_master_<T>(master);
@@ -230,6 +232,10 @@ module recrd::profile {
   public fun update_username(self: &mut Profile, new_username: String, ctx: &mut TxContext) {
     // Only addresses in the authorizations table can update.
     assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
+
+    // Only addresses with minimum UPDATE_ACCESS can update. 
+    assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
+    
     self.username = new_username
   }
 
@@ -240,6 +246,9 @@ module recrd::profile {
     // Only addresses in the authorizations table can update.
     assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
+    // Only addresses with minimum UPDATE_ACCESS can update. 
+    assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
+    
     // Make sure the watch_time is greater than the current watch_time.
     assert!(new_watch_time > self.watch_time, ENewValueShouldBeHigher);
 
@@ -253,6 +262,9 @@ module recrd::profile {
     // Only addresses in the authorizations table can update.
     assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
+    // Only addresses with minimum UPDATE_ACCESS can update. 
+    assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
+    
     // New number of videos watched should greater than current.
     assert!(new_videos_watched > self.videos_watched, ENewValueShouldBeHigher);
 
@@ -266,6 +278,9 @@ module recrd::profile {
     // Only addresses in the authorizations table can update.
     assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
+    // Only addresses with minimum UPDATE_ACCESS can update. 
+    assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
+    
     // New number of adverts watched should greater than current. 
     assert!(new_adverts_watched > self.adverts_watched, ENewValueShouldBeHigher);
 
@@ -279,6 +294,9 @@ module recrd::profile {
     // Only addresses in the authorizations table can update.
     assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
+    // Only addresses with minimum UPDATE_ACCESS can update. 
+    assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
+    
     self.number_of_followers = new_number_of_followers;
   }
 
@@ -289,6 +307,9 @@ module recrd::profile {
     // Only addresses in the authorizations table can update.
     assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
 
+    // Only addresses with minimum UPDATE_ACCESS can update. 
+    assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
+    
     self.number_of_following = new_number_of_following;
   }
 
@@ -318,55 +339,55 @@ module recrd::profile {
   // === Accessors ===
 
   // Returns the user ID.
-  public fun user_id(self: &Profile): String {
-    self.user_id
+  public fun user_id(self: &Profile): &String {
+    &self.user_id
   }
 
   // Returns the username.
-  public fun username(self: &Profile): String {
-    self.username
+  public fun username(self: &Profile): &String {
+    &self.username
   }
 
   // Returns the level of access for given address.
-  public fun access_rights(self: &Profile, user: address): u8 {
+  public fun access_rights(self: &Profile, user: address): &u8 {
     // First checks whether the address exists in the authorizations table.
     assert!(self.authorizations.contains(user), ENotAuthorized);
-    *self.authorizations.borrow(user)
+    self.authorizations.borrow(user)
   }
 
   // Updates the watch time for given profile.
-  public fun watch_time(self: &Profile): u64 {
-    self.watch_time
+  public fun watch_time(self: &Profile): &u64 {
+    &self.watch_time
   }
 
   // Updates the number of videos watched for given profile.
-  public fun videos_watched(self: &Profile): u64 {
-    self.videos_watched
+  public fun videos_watched(self: &Profile): &u64 {
+    &self.videos_watched
   }
 
   // Updates the number of adverts watched for given profile.
-  public fun adverts_watched(self: &Profile): u64 {
-    self.adverts_watched
+  public fun adverts_watched(self: &Profile): &u64 {
+    &self.adverts_watched
   }
   
   // Updates the number of followers for given profile.
-  public fun number_of_followers(self: &Profile): u64 {
-    self.number_of_followers
+  public fun number_of_followers(self: &Profile): &u64 {
+    &self.number_of_followers
   }
 
   // Updates the number users given profile is following.
-  public fun number_of_following(self: &Profile): u64 {
-    self.number_of_following
+  public fun number_of_following(self: &Profile): &u64 {
+    &self.number_of_following
   }
 
   // Updates the ad revenue for given profile.
-  public fun ad_revenue(self: &Profile): u64 {
-    self.ad_revenue
+  public fun ad_revenue(self: &Profile): &u64 {
+    &self.ad_revenue
   }
   
   // Updates the commission revenue for given profile.
-  public fun commission_revenue(self: &Profile): u64 {
-    self.commission_revenue
+  public fun commission_revenue(self: &Profile): &u64 {
+    &self.commission_revenue
   }
 
   // === Private Functions ===
