@@ -15,7 +15,7 @@ module recrd::profile {
 
   // === Package dependencies ===
   use recrd::core::AdminCap;
-  use recrd::master::{Self, Master};
+  use recrd::master::{Master};
   use recrd::receipt::{Self, Receipt};
 
   // === Custom Receivers ===
@@ -48,9 +48,9 @@ module recrd::profile {
   const ADMIN_ACCESS: u8 = 200;
 
   // Stale state is when the master is not on sale
-  const STALE: u8 = 0;
+  const RETAINED: u8 = 1;
   // On sale state is when the master is on sale
-  const ON_SALE: u8 = 1;
+  const ON_SALE: u8 = 2;
   // Admin enforced state when rules are not met
   const SUSPENDED: u8 = 3;
 
@@ -211,10 +211,10 @@ module recrd::profile {
     assert!(object::id(&master) == master_id, EInvalidObject);
 
     // Only masters with ON_SALE status can be bought
-    assert!(master::sale_status<T>(&master) == ON_SALE, EMasterNotOnSale);
+    assert!(master.sale_status<T>() == ON_SALE, EMasterNotOnSale);
 
-    // Update the sale status of the master object to STALE
-    master::update_sale_status<T>(&mut master, STALE);
+    // Update the sale status of the master object to RETAINED
+    master.update_sale_status<T>(RETAINED);
 
     // Transfer the master to the buyer profile
     transfer::public_transfer(master, user_profile);
