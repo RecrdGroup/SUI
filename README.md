@@ -7,9 +7,9 @@ This repo contains the smart contracts and architecture for the Recrd <> Sui imp
 Has 4 modules; core, master, profile & receipt.
 
 - recrd::core manages the AdminCaps needed for admin actions in other modules. It is also responsible for version controlling sensitive functions.
-- recrd::master creates and manages Master<T> and Metadata<T>. Also establishes the creation of publisher and display.
-  - A Display can also be initialized or updated via PTBs
-  - More about the Display standard can be found [here](https://docs.sui.io/standards/display) & PTB construction tool is located [here](https://sui-tools.vercel.app/ptb-generator?network=testnet&objectId=&package=0x2&module=display&function=new_with_fields)
+- recrd::master creates and manages Master<T> and Metadata<T>. Also establishes the creation of Publisher and Display.
+  - A Display can also be initialized or updated via PTBs.
+  - More about the Display standard can be found [here](https://docs.sui.io/standards/display) & a helpful PTB construction tool is located [here](https://sui-tools.vercel.app/ptb-generator?network=testnet&objectId=&package=0x2&module=display&function=new_with_fields).
 - recrd::profile creates user profiles. Provides an authorization framework which offers precise control over RECRD user profiles and their application related assets.
 - recrd::receipt creates receipts for purchases. It is responsible for the creation of receipts and the effects that a purchase has on chain.
 

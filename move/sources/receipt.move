@@ -1,8 +1,8 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-/// Master purchases that occur on the platform are recorded on chain by creating a receipt upon 
-/// successful transactions. The receipt can be used as proof of funds transferred
+/// Master purchases that occur on the platform are recorded on chain by creating a Receipt upon 
+/// a successful transaction. The receipt can be used as proof of funds transferred
 /// to the seller. Allows the user to transfer a `Master<T>` object to their profile by 
 /// prooving the particular purchase with the receipt.
 module recrd::receipt {
