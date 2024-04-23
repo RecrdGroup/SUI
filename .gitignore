@@ -29,7 +29,7 @@ build/
 move/**/build
 .coverage_map.mvcov
 .trace
-Move.lock
+**/Move.lock
 migration.patch
 
 # env files under the setup directory
