@@ -1,6 +1,6 @@
 # Smart Contracts & Architecture
 
-This repo contains the smart contracts and architecture for the Recrd <> Sui implementation. The modules allow for the creation of User Profiles, Masters, Metadata & Receipts for facilitating on chain proof of purchases.
+This repo contains the smart contracts and architecture for the Recrd <> Sui implementation. The modules allow for the creation of User Profiles, Masters, Metadata & Receipts for facilitating on-chain Master ownership and trading.
 
 # Module structure
 
