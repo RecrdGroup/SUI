@@ -355,37 +355,37 @@ module recrd::profile {
     self.authorizations.borrow(user)
   }
 
-  // Updates the watch time for given profile.
+  // Returns the watch time for given profile.
   public fun watch_time(self: &Profile): &u64 {
     &self.watch_time
   }
 
-  // Updates the number of videos watched for given profile.
+  // Returns the number of videos watched for given profile.
   public fun videos_watched(self: &Profile): &u64 {
     &self.videos_watched
   }
 
-  // Updates the number of adverts watched for given profile.
+  // Returns the number of adverts watched for given profile.
   public fun adverts_watched(self: &Profile): &u64 {
     &self.adverts_watched
   }
   
-  // Updates the number of followers for given profile.
+  // Returns the number of followers for given profile.
   public fun number_of_followers(self: &Profile): &u64 {
     &self.number_of_followers
   }
 
-  // Updates the number users given profile is following.
+  // Returns the number users given profile is following.
   public fun number_of_following(self: &Profile): &u64 {
     &self.number_of_following
   }
 
-  // Updates the ad revenue for given profile.
+  // Returns the ad revenue for given profile.
   public fun ad_revenue(self: &Profile): &u64 {
     &self.ad_revenue
   }
   
-  // Updates the commission revenue for given profile.
+  // Returns the commission revenue for given profile.
   public fun commission_revenue(self: &Profile): &u64 {
     &self.commission_revenue
   }
