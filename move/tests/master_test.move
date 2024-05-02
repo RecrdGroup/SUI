@@ -20,7 +20,8 @@ module recrd::master_test {
         EInvalidNewRevenueTotal, 
         EInvalidNewRevenuePaid, 
         ESuspendedItemCannotBeListed,
-        ESuspendedItemCannotBeRetained
+        ESuspendedItemCannotBeRetained,
+        EInvalidMetadataForMaster
     };
 
     // === Constants ===
@@ -734,6 +735,56 @@ module recrd::master_test {
         core::burn_admincap(admin_cap);
         ts::end(scenario);
     }
+
+    #[test]
+    #[expected_failure(abort_code = EInvalidMetadataForMaster)]
+    public fun aborts_on_metadata_master_miss_match_when_syncing() {
+        let mut scenario = ts::begin(ADMIN);
+        let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+
+        let mut master = mint_master<Video>(
+            &mut scenario,
+            utf8(b"Test Video Master"),
+            option::some<ID>(object::id_from_address(PARENT_REF)),
+            option::some<ID>(object::id_from_address(ORIGIN_REF))
+        );
+
+        ts::next_tx(&mut scenario, ADMIN);
+        let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
+
+
+        // Update Metadata
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            master::set_title<Video>(&mut metadata, utf8(b"A New title"));
+        };
+
+        let _impostor_master = mint_master<Video>(
+            &mut scenario,
+            utf8(b"Test Video Master but different"),
+            option::some<ID>(object::id_from_address(PARENT_REF)),
+            option::some<ID>(object::id_from_address(ORIGIN_REF))
+        );
+
+        ts::next_tx(&mut scenario, ADMIN);
+        let impostor_metadata = ts::take_shared<Metadata<Video>>(&scenario);
+
+
+        // Sync Master with the wrong metadata
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            master::sync_title(&mut master, &impostor_metadata);
+        };
+
+
+        let _ = master::burn_master(&admin_cap, master);
+        let _ = master::burn_master(&admin_cap, _impostor_master);
+        core::burn_admincap(admin_cap);
+        ts::return_shared(metadata);
+        ts::return_shared(impostor_metadata);
+        ts::end(scenario);
+    }
+
 
     // === Helpers ===
 

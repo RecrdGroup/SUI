@@ -26,11 +26,10 @@ module recrd::profile {
   const EInvalidSaleStatus: u64 = 1;
   const EInvalidAccessRights: u64 = 2;
   const EInvalidObject: u64 = 3;
-  const EAccessLevelOutOfRange: u64 = 4;
-  const ENotAuthorized: u64 = 5;
-  const EAccessLevelOutOfBounds: u64 = 6;
-  const EMasterNotOnSale: u64 = 7;
-  const EUpdateNotAuthorized: u64 = 8;
+  const ENotAuthorized: u64 = 4;
+  const EAccessLevelOutOfBounds: u64 = 5;
+  const EMasterNotOnSale: u64 = 6;
+  const EUpdateNotAuthorized: u64 = 7;
 
   // === Constants ===
 
@@ -70,7 +69,7 @@ module recrd::profile {
     // type pending to decide the hashing approach
     username: String,
     // Keep a record of each user's address + RECRD address
-	  // in the format of a pair <address, Access Level [0,250]>
+	  // in the format of a pair <address, Access Level [0,255]>
     authorizations: Table<address, u8>,
     // total time the user has spent on watching videos
     watch_time: u64, // in seconds
@@ -137,9 +136,6 @@ module recrd::profile {
   public fun authorize(
     _: &AdminCap, self: &mut Profile, addr: address, access: u8
   ) {
-    // Users access level should be in the range of (0, 200)
-    assert!(access > 0 && access <= 250, EAccessLevelOutOfRange);
-    
     self.authorizations.add(addr, access);
   }
 
@@ -409,9 +405,6 @@ module recrd::profile {
 
   /// Updates the access level of given address in the `Profile` authorization table.
   fun update_authorization_(self: &mut Profile, addr: address, new_access: u8) {
-    // Make sure the new access level is within the allowed range. 
-    assert!(new_access >= 0 && new_access <= 250, EAccessLevelOutOfRange);
-
     // Check whether given address exists in authorization table. 
     assert!(self.authorizations.contains(addr), ENotAuthorized);
 

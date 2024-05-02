@@ -19,6 +19,7 @@ module recrd::master {
   const EInvalidNewRevenuePaid: u64 = 3;
   const ESuspendedItemCannotBeListed: u64 = 4;
   const ESuspendedItemCannotBeRetained: u64 = 5;
+  const EInvalidMetadataForMaster: u64 = 6;
 
   // === Constants ===
   const RETAINED: u8 = 1;
@@ -384,16 +385,19 @@ module recrd::master {
 
   // Sync Master title with the title in Metadata.
   public fun sync_title<T>(master: &mut Master<T>, metadata: &Metadata<T>) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     master.title = metadata.title;
   }
 
   // Sync Master image URL with the image URL in Metadata.
   public fun sync_image_url<T>(master: &mut Master<T>, metadata: &Metadata<T>) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     master.image_url = metadata.image_url;
   }
 
   // Sync Master media URL with the media URL in Metadata.
   public fun sync_media_url<T>(master: &mut Master<T>, metadata: &Metadata<T>) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     master.media_url = metadata.media_url;
   }
 
