@@ -75,6 +75,7 @@ module recrd::core {
 
   /// Admin can update the registry's version.
   public fun bump_registry_version(registry: &mut Registry, _: &AdminCap) {
+    assert!(VERSION > registry.version, EWrongVersion);
     registry.version = VERSION;
   }
 
