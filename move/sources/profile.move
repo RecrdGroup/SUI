@@ -217,9 +217,6 @@ module recrd::profile {
 
   // Authorized addresses can update username.
   public fun update_username(self: &mut Profile, new_username: String, ctx: &mut TxContext) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -230,9 +227,6 @@ module recrd::profile {
   public fun update_watch_time(
     self: &mut Profile, new_watch_time: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -246,9 +240,6 @@ module recrd::profile {
   public fun update_videos_watched(
     self: &mut Profile, new_videos_watched: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -262,9 +253,6 @@ module recrd::profile {
   public fun update_adverts_watched(
     self: &mut Profile, new_adverts_watched: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -278,9 +266,6 @@ module recrd::profile {
   public fun update_number_of_followers( 
     self: &mut Profile, new_number_of_followers: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -291,9 +276,6 @@ module recrd::profile {
   public fun update_number_of_following(
     self: &mut Profile, new_number_of_following: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
