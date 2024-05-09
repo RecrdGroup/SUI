@@ -405,13 +405,12 @@ module recrd::master {
   public fun list<T>(master: &mut Master<T>) {
     // Masters that are SUSPENDED cannot be set for sale. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeListed);
-
     master.sale_status = ON_SALE;
   }
 
   // Unlists Master from market by reverting status to RETAINED. 
   public fun unlist<T>(master: &mut Master<T>) {
-    // Masters that are SUSPENDED cannot be set reverted to retained. 
+    // Masters that are SUSPENDED cannot revert status to retained. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeRetained);
     master.sale_status = RETAINED;
   }

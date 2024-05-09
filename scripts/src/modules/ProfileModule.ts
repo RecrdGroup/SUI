@@ -336,13 +336,13 @@ export class ProfileModule {
 
     // Call the smart contract function to receive a Master object
     let master = txb.moveCall({
-      target: `${PACKAGE_ID}::profile::admin_receive`,
+      target: `${PACKAGE_ID}::profile::admin_receive_master`,
       arguments: [
         txb.object(ADMIN_CAP),
         txb.object(profileId),
         txb.object(masterId),
       ],
-      typeArguments: [`${PACKAGE_ID}::master::Master<${masterType}>`],
+      typeArguments: [masterType!],
     });
 
     // Get the Sui address of the signer

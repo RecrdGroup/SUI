@@ -125,7 +125,7 @@ module recrd::profile {
     transfer::transfer(identity, addr);
   }
 
-  /// Admin can send more Identitys to users that have existing Profile. 
+  /// Admin can send more Identities to users that have existing Profile. 
   public fun new_cap(
     _: &AdminCap, profile: &Profile, ctx: &mut TxContext
   ): Identity {
@@ -146,11 +146,11 @@ module recrd::profile {
     self.authorizations.remove(user);
   }
 
-  /// Admin can receive any `T` object from `Profile`.
-  public fun admin_receive<T: key + store>(
-    _:&AdminCap, self: &mut Profile, object: Receiving<T>
-  ): T {
-    transfer::public_receive<T>(&mut self.id, object)
+  /// Admin can receive `Master<T>` from a profile.
+  public fun admin_receive_master<T: drop>(
+    _:&AdminCap, self: &mut Profile, master: Receiving<Master<T>>
+  ): Master<T> {
+    self.receive_master_<T>(master)
   }
 
   /// Borrows Master<T> temporarily with a Promise to return it back. 
