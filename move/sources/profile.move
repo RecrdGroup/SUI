@@ -157,17 +157,8 @@ module recrd::profile {
   public fun borrow_master<T: drop>(
     self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): (Master<T>, Promise) {
-    // Check whether sender exists in authorization table. 
-    assert!(
-      self.authorizations.contains(ctx.sender()),
-      ENotAuthorized
-    );
-
     // Users that have access above the BORROW_ACCESS threshold can borrow the master
-    assert!(
-      *self.authorizations.borrow(ctx.sender()) >= BORROW_ACCESS,
-      EInvalidAccessRights
-    );
+    assert!(*self.access_rights(ctx.sender()) >= BORROW_ACCESS, EInvalidAccessRights);
 
     let master = self.receive_master_<T>(master);
 
