@@ -20,11 +20,13 @@ module recrd::master {
   const ESuspendedItemCannotBeListed: u64 = 4;
   const ESuspendedItemCannotBeRetained: u64 = 5;
   const EInvalidMetadataForMaster: u64 = 6;
+  const EItemHasBeenClaimed: u64 = 7;
 
   // === Constants ===
   const RETAINED: u8 = 1;
   const ON_SALE: u8 = 2;
   const SUSPENDED: u8 = 3;
+  const CLAIMED: u8 = 4;
 
   // === Structs ===
 
@@ -284,6 +286,10 @@ module recrd::master {
   
   // === Master Accessors ===
 
+  public fun id<T>(master: &Master<T>): ID {
+    master.id.to_inner()
+  }
+
   public fun metadata_ref<T>(master: &Master<T>): &ID {
     &master.metadata_ref
   }
@@ -405,6 +411,10 @@ module recrd::master {
   public fun list<T>(master: &mut Master<T>) {
     // Masters that are SUSPENDED cannot be set for sale. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeListed);
+
+    // Don't allow status update if a Receipt has been issued for master.
+    assert!(master.sale_status != CLAIMED, EItemHasBeenClaimed);
+
     master.sale_status = ON_SALE;
   }
 
@@ -412,12 +422,22 @@ module recrd::master {
   public fun unlist<T>(master: &mut Master<T>) {
     // Masters that are SUSPENDED cannot revert status to retained. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeRetained);
+
+    // Don't allow status update if a Receipt has been issued for master.
+    assert!(master.sale_status != CLAIMED, EItemHasBeenClaimed);
+
     master.sale_status = RETAINED;
   }
 
   // Admin can suspend a Master for violation.
   public fun suspend<T>(_: &AdminCap, master: &mut Master<T>) {
-    master.sale_status = SUSPENDED
+    master.sale_status = SUSPENDED;
+  }
+
+  // Internal status to avoid updating of Master while it's in the process of being
+  // bought by a user that already has a `Receipt` for this Master.
+  public(package) fun claim<T>(master: &mut Master<T>) {
+    master.sale_status = CLAIMED;
   }
 
   // Modules can update the sale status internally.
@@ -427,18 +447,30 @@ module recrd::master {
 
   // === Metadata Setters ===
 
-  // Updates the title for given Metadata.
-  public fun set_title<T>(metadata: &mut Metadata<T>, title: String) {
+  // Users that have (at least) BORROW access to Master can update the title 
+  // for given Metadata.
+  public fun set_title<T>(
+    master: &Master<T>, metadata: &mut Metadata<T>, title: String
+  ) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     metadata.title = title;
   }
 
-  // Updates the description for given Metadata.
-  public fun set_description<T>(metadata: &mut Metadata<T>, description: String) {
+  // Users that have (at least) BORROW access to Master can update the description  
+  // for given Metadata.
+  public fun set_description<T>(
+    master: &Master<T>, metadata: &mut Metadata<T>, description: String
+  ) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     metadata.description = description;
   }
 
-  // Updates the image URL for given Metadata.
-  public fun set_image_url<T>(metadata: &mut Metadata<T>, image_url: String) {
+  // Users that have (at least) BORROW access to Master can update the image URL 
+  // for given Metadata.
+  public fun set_image_url<T>(
+    master: &Master<T>, metadata: &mut Metadata<T>, image_url: String
+  ) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     metadata.image_url = image_url;
   }
   

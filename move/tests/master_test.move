@@ -416,10 +416,10 @@ module recrd::master_test {
         {
             let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             
-            master::set_title(&mut metadata, utf8(b"Updated Title"));
-            master::set_description(&mut metadata, utf8(b"Updated Description"));
+            master::set_title(&master, &mut metadata, utf8(b"Updated Title"));
+            master::set_description(&master, &mut metadata, utf8(b"Updated Description"));
             master::set_hashtags(&admin_cap, &mut metadata, vector[utf8(b"updated"), utf8(b"master")]);
-            master::set_image_url(&mut metadata, utf8(b"image-url.com"));
+            master::set_image_url(&master, &mut metadata, utf8(b"image-url.com"));
             master::set_media_url(&admin_cap, &mut metadata, utf8(b"media-url.com"));
             master::set_royalty_percentage_bp(&admin_cap, &mut metadata, 200);
             master::set_metadata_parent(&admin_cap, &mut metadata, option::none<ID>());
@@ -756,7 +756,7 @@ module recrd::master_test {
         // Update Metadata
         ts::next_tx(&mut scenario, ADMIN);
         {
-            master::set_title<Video>(&mut metadata, utf8(b"A New title"));
+            master::set_title<Video>(&master, &mut metadata, utf8(b"A New title"));
         };
 
         let _impostor_master = mint_master<Video>(

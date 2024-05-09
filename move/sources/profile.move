@@ -28,8 +28,9 @@ module recrd::profile {
   const EInvalidObject: u64 = 3;
   const ENotAuthorized: u64 = 4;
   const EAccessLevelOutOfBounds: u64 = 5;
-  const EMasterNotOnSale: u64 = 6;
+  const EMasterReceiptNotClaimed: u64 = 6;
   const EUpdateNotAuthorized: u64 = 7;
+  const EBorrowNotAllowed: u64 = 8;
 
   // === Constants ===
 
@@ -52,6 +53,9 @@ module recrd::profile {
   const ON_SALE: u8 = 2;
   // Admin enforced state when rules are not met
   const SUSPENDED: u8 = 3;
+  // Claimed means a Receipt has been issued for master and
+  // it's in the process of being bought
+  const CLAIMED: u8 = 4;
 
   // === Structs ===
 
@@ -162,6 +166,9 @@ module recrd::profile {
 
     let master = self.receive_master_<T>(master);
 
+    // Cannot borrow during an active selling process where a Receipt has been issued
+    assert!(master.sale_status<T>() != CLAIMED, EBorrowNotAllowed);
+
     let promise = Promise { 
       master_id: object::id(&master),
       profile: object::id_address(self)
@@ -197,8 +204,8 @@ module recrd::profile {
     // Validate the master id from the receipt and the master object
     assert!(object::id(&master) == master_id, EInvalidObject);
 
-    // Only masters with ON_SALE status can be bought
-    assert!(master.sale_status<T>() == ON_SALE, EMasterNotOnSale);
+    // Only master with CLAIMED sale status can be bought
+    assert!(master.sale_status<T>() == CLAIMED, EMasterReceiptNotClaimed);
 
     // Update the sale status of the master object to RETAINED
     master.update_sale_status<T>(RETAINED);
