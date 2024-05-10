@@ -4,7 +4,7 @@ module recrd::receipt_test {
     use sui::test_scenario::{Self as ts};
     use std::string::{utf8};
     use recrd::core;
-    use recrd::master::{Self, Sound};
+    use recrd::master::{Self, Master, Sound};
     use recrd::receipt::{Self, Receipt};
     use recrd::master_test;
 
@@ -33,7 +33,7 @@ module recrd::receipt_test {
             option::some<ID>(object::id_from_address(ORIGIN_REF))
         );
 
-        let master_id = master.id<Sound>();
+        let master_id = object::id<Master<Sound>>(&master);
 
         // Admin creates a new receipt for user
         ts::next_tx(&mut scenario, ADMIN);

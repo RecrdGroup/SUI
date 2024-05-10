@@ -286,10 +286,6 @@ module recrd::master {
   
   // === Master Accessors ===
 
-  public fun id<T>(master: &Master<T>): ID {
-    master.id.to_inner()
-  }
-
   public fun metadata_ref<T>(master: &Master<T>): &ID {
     &master.metadata_ref
   }

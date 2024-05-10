@@ -55,7 +55,7 @@ module recrd::receipt {
 
         transfer::transfer(Receipt {
             id: object::new(ctx),
-            master_id: master::id<T>(master),
+            master_id: object::id<Master<T>>(master),
             user_profile: profile,
         }, profile);
     }
