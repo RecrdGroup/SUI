@@ -404,11 +404,13 @@ module recrd::master {
   }
 
   // Lists Master for sale by setting status to ON_SALE. 
+  // This allows a Receipt to be issued for a Master.
   public fun list<T>(master: &mut Master<T>) {
     // Masters that are SUSPENDED cannot be set for sale. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeListed);
 
     // Don't allow status update if a Receipt has been issued for master.
+    // Once a Receipt is minted, the sale_status is set to CLAIMED.
     assert!(master.sale_status != CLAIMED, EItemHasBeenClaimed);
 
     master.sale_status = ON_SALE;
