@@ -21,6 +21,7 @@ module recrd::master {
   const ESuspendedItemCannotBeRetained: u64 = 5;
   const EInvalidMetadataForMaster: u64 = 6;
   const EItemHasBeenClaimed: u64 = 7;
+  const ECanOnlyRetainSuspendedItem: u64 = 8;
 
   // === Constants ===
   const RETAINED: u8 = 1;
@@ -430,6 +431,12 @@ module recrd::master {
   // Admin can suspend a Master for violation.
   public fun suspend<T>(_: &AdminCap, master: &mut Master<T>) {
     master.sale_status = SUSPENDED;
+  }
+
+  // Admin can unsuspend a Master that was previously suspended.
+  public fun unsuspend<T>(_: &AdminCap, master: &mut Master<T>) {
+    assert!(master.sale_status == SUSPENDED, ECanOnlyRetainSuspendedItem);
+    master.sale_status = RETAINED;
   }
 
   // Internal status to avoid updating of Master while it's in the process of being

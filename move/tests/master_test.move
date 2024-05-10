@@ -21,7 +21,8 @@ module recrd::master_test {
         EInvalidNewRevenuePaid, 
         ESuspendedItemCannotBeListed,
         ESuspendedItemCannotBeRetained,
-        EInvalidMetadataForMaster
+        EInvalidMetadataForMaster,
+        ECanOnlyRetainSuspendedItem
     };
 
     // === Constants ===
@@ -580,6 +581,41 @@ module recrd::master_test {
         ts::end(scenario);
     }
 
+    #[test]
+    public fun unsuspends_master() {
+        let mut scenario = ts::begin(ADMIN);
+        let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+
+        let mut master = mint_master<Video>(
+            &mut scenario,
+            utf8(b"Test Video Master"),
+            option::some<ID>(object::id_from_address(PARENT_REF)),
+            option::some<ID>(object::id_from_address(ORIGIN_REF))
+        );
+
+        ts::next_tx(&mut scenario, USER);
+        {
+            // Suspend master
+            master::suspend(&admin_cap, &mut master);
+        };
+
+        ts::next_tx(&mut scenario, USER);
+        {
+            // Unsuspend master
+            master::unsuspend(&admin_cap, &mut master);
+        };
+
+        // Validate Updated Sale Status
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            assert!(master::sale_status(&master) == RETAINED, EInvalidMasterValue);
+        };
+
+        master::burn_master(&admin_cap, master);
+        core::burn_admincap(admin_cap);
+        ts::end(scenario);
+    }
+
     // ~~~ Expected Failures ~~~
 
     #[test]
@@ -635,6 +671,30 @@ module recrd::master_test {
         {
             // User tries to list for sale
             master::unlist(&mut master);
+        };
+
+        master::burn_master(&admin_cap, master);
+        core::burn_admincap(admin_cap);
+        ts::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = ECanOnlyRetainSuspendedItem)]
+    public fun aborts_on_unsuspending_non_suspended_master() {
+        let mut scenario = ts::begin(ADMIN);
+        let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+
+        let mut master = mint_master<Video>(
+            &mut scenario,
+            utf8(b"Test Video Master"),
+            option::some<ID>(object::id_from_address(PARENT_REF)),
+            option::some<ID>(object::id_from_address(ORIGIN_REF))
+        );
+
+        ts::next_tx(&mut scenario, USER);
+        {
+            // Admin tries to unsuspend master
+            master::unsuspend(&admin_cap, &mut master);
         };
 
         master::burn_master(&admin_cap, master);
