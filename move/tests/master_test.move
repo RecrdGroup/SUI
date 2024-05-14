@@ -406,7 +406,7 @@ module recrd::master_test {
         ts::next_tx(&mut scenario, USER);
         {
             let identity = ts::take_from_sender<Identity>(&scenario);
-            master::unlist(&mut master, &identity);
+            master::unlist(&identity, &mut master);
             ts::return_to_sender(&scenario, identity);
         };
 
@@ -684,7 +684,7 @@ module recrd::master_test {
         {
             // User tries to list for sale
             let identity = ts::take_from_sender<Identity>(&scenario);
-            master::list(&mut master, &identity);
+            master::list(&identity, &mut master);
             ts::return_to_sender(&scenario, identity);
         };
 
@@ -737,7 +737,7 @@ module recrd::master_test {
         {
             // User tries to list for sale
             let identity = ts::take_from_sender<Identity>(&scenario);
-            master::unlist(&mut master, &identity);
+            master::unlist(&identity, &mut master);
             ts::return_to_sender(&scenario, identity);
         };
 

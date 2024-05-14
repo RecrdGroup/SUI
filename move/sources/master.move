@@ -408,7 +408,7 @@ module recrd::master {
   // Lists Master for sale by setting status to ON_SALE. 
   // This allows a Receipt to be issued for a Master.
   // Only users that hold a `Identity` cap object can call this.
-  public fun list<T>(master: &mut Master<T>, _: &Identity) {
+  public fun list<T>( _: &Identity, master: &mut Master<T>) {
     // Masters that are SUSPENDED cannot be set for sale. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeListed);
 
@@ -421,7 +421,7 @@ module recrd::master {
 
   // Unlists Master from market by reverting status to RETAINED.
   // Only users that hold a `Identity` cap object can call this.
-  public fun unlist<T>(master: &mut Master<T>, _: &Identity) {
+  public fun unlist<T>( _: &Identity, master: &mut Master<T>) {
     // Masters that are SUSPENDED cannot revert status to retained. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeRetained);
 
