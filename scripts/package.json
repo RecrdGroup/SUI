@@ -13,6 +13,7 @@
     "testMasterReceiveAndBurn": "ts-node src/tests/master/testMasterReceiveAndBurn.ts",
     "testGetMaster": "ts-node src/tests/master/testGetMaster.ts",
     "testGetMasterMetadata": "ts-node src/tests/master/testGetMasterMetadata.ts",
+    "testMetadataSetTitleAndSync": "ts-node src/tests/master/testMetadataSetTitleAndSync.ts",
     "testMasterMetadataBurn": "ts-node src/tests/master/testMasterMetadataBurn.ts",
     "testReceiptMint": "ts-node src/tests/receipt/testReceiptMint.ts",
     "testMasterBuy": "ts-node src/tests/master/testMasterBuy.ts",

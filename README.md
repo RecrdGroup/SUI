@@ -62,4 +62,6 @@ Has 4 modules; core, master, profile & receipt.
     - `npm run testMasterUnsuspend` to update a master's sale_status field to RETAINED.
       - Admin action.
       - Requires a master to be minted first under a profile and be suspended.
+    - `npm run testMetadataSetTitleAndSync` to set a title for a Metadata object and sync it with the master.
+      - Requires a master to be minted first under a profile.
   - To check transaction outputs in detail you can visit an explorer such as [Sui Explorer](https://suiexplorer.com/?network=testnet) and paste the digest in the search bar, which is printed by each script command, to see the full transaction effects.

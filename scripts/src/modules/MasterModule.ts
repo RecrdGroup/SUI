@@ -499,12 +499,14 @@ export class MasterModule {
   /**
    * Syncs the title of a Master object with its corresponding Metadata title.
    *
+   * @param profileId - The ID of the Profile that contains the Master.
    * @param masterId - The ID of the Master whose title is to be synced.
    * @param metadataId - The ID of the Metadata from which to sync the title.
    * @param signer - The signer that will sign and execute the transaction.
    * @returns A promise that resolves with the updated Master object.
    */
   async syncMasterTitle(
+    profileId: string,
     masterId: string,
     metadataId: string,
     signer: Signer
@@ -516,9 +518,23 @@ export class MasterModule {
       throw new Error("Couldn't get Master type");
     }
 
+    // First, we need to borrow the Master from the Profile
+    let [master, promise] = txb.moveCall({
+      target: `${PACKAGE_ID}::profile::borrow_master`,
+      arguments: [txb.object(profileId), txb.object(masterId)],
+      typeArguments: [masterType],
+    });
+
     txb.moveCall({
       target: `${PACKAGE_ID}::master::sync_title`,
-      arguments: [txb.object(masterId), txb.object(metadataId)],
+      arguments: [master, txb.object(metadataId)],
+      typeArguments: [masterType],
+    });
+
+    // Return the updated Master object to the Profile and resolve the promise
+    txb.moveCall({
+      target: `${PACKAGE_ID}::profile::return_master`,
+      arguments: [txb.object(master), promise],
       typeArguments: [masterType],
     });
 
@@ -654,12 +670,16 @@ export class MasterModule {
   /**
    * Updates the title of a Metadata object.
    *
+   * @param profileId - The ID of the Profile that contains the Master.
+   * @param masterId - The ID of the Master to update.
    * @param metadataId - The ID of the Metadata to update.
    * @param newTitle - The new title to set for the Metadata.
    * @param signer - The signer that will sign and execute the transaction.
    * @returns A promise that resolves with the updated Master Metadata object.
    */
   async updateMetadataTitle(
+    profileId: string,
+    masterId: string,
     metadataId: string,
     newTitle: string,
     signer: Signer
@@ -671,10 +691,31 @@ export class MasterModule {
       throw new Error("Couldn't get Master Metadata type");
     }
 
+    // Get the Master type
+    const masterType = await this.getMasterType(masterId);
+
+    if (!masterType) {
+      throw new Error("Couldn't get Master type");
+    }
+
+    // First, we need to borrow the Master from the Profile
+    let [master, promise] = txb.moveCall({
+      target: `${PACKAGE_ID}::profile::borrow_master`,
+      arguments: [txb.object(profileId), txb.object(masterId)],
+      typeArguments: [masterType],
+    });
+
     txb.moveCall({
       target: `${PACKAGE_ID}::master::set_title`,
-      arguments: [txb.object(metadataId), txb.pure(newTitle)],
+      arguments: [master, txb.object(metadataId), txb.pure(newTitle)],
       typeArguments: [metadataType],
+    });
+
+    // Return the Master object to the Profile and resolve the promise
+    txb.moveCall({
+      target: `${PACKAGE_ID}::profile::return_master`,
+      arguments: [txb.object(master), promise],
+      typeArguments: [masterType],
     });
 
     // Sign and execute the transaction
