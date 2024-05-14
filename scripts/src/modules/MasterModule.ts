@@ -208,6 +208,61 @@ export class MasterModule {
   }
 
   /**
+   * Unsuspends a master by updating its status to 'RETAINED'.
+   *
+   * @param profileId - The ID for the user profile.
+   * @param masterId - The ID for the Master to be listed.
+   * @param signer - The signer that will sign and execute the transaction.
+   * @returns A promise that resolves with the updated Master object.
+   */
+  async unsuspendMaster(profileId: string, masterId: string, signer: Signer) {
+    // Get the Master type
+    const masterType = await this.getMasterType(masterId);
+
+    if (!masterType) {
+      throw new Error("Couldn't get Master type");
+    }
+
+    // Create a transaction block
+    const txb = new TransactionBlock();
+
+    // First, we need to borrow the Master from the Profile
+    let [master, promise] = txb.moveCall({
+      target: `${PACKAGE_ID}::profile::borrow_master`,
+      arguments: [txb.object(profileId), txb.object(masterId)],
+      typeArguments: [masterType],
+    });
+
+    // Unsuspending the master
+    txb.moveCall({
+      target: `${PACKAGE_ID}::master::unsuspend`,
+      arguments: [txb.object(ADMIN_CAP), master],
+      typeArguments: [masterType],
+    });
+
+    // Return the updated Master object to the Profile and resolve the promise
+    txb.moveCall({
+      target: `${PACKAGE_ID}::profile::return_master`,
+      arguments: [txb.object(master), promise],
+      typeArguments: [masterType],
+    });
+
+    // Sign and execute the transaction
+    const res = await executeTransaction({ txb, signer });
+    console.log(res);
+    // Check if the profile was updated successfully
+    let updatedMaster = res.objectChanges!.find(
+      (e) => e.type == "mutated" && e.objectType.includes("Master")
+    );
+
+    if (!updatedMaster || updatedMaster.type !== "mutated") {
+      throw new Error("Master update failed.");
+    }
+
+    return await this.getMasterById(masterId);
+  }
+
+  /**
    * Internal function to update the sale status of a Master. It makes the necessary
    * moveCalls to submit transactions.
    *

@@ -18,7 +18,8 @@
     "testMasterBuy": "ts-node src/tests/master/testMasterBuy.ts",
     "testMasterSetOnSale": "ts-node src/tests/master/testMasterSetOnSale.ts",
     "testMasterRetain": "ts-node src/tests/master/testMasterRetain.ts",
-    "testMasterSuspend": "ts-node src/tests/master/testMasterSuspend.ts"
+    "testMasterSuspend": "ts-node src/tests/master/testMasterSuspend.ts",
+    "testMasterUnsuspend": "ts-node src/tests/master/testMasterUnsuspend.ts"
   },
   "author": "",
   "license": "ISC",

@@ -39,6 +39,7 @@ export const SALE_STATUS = {
   RETAINED: 1,
   ON_SALE: 2,
   SUSPENDED: 3,
+  CLAIMED: 4,
 };
 
 export const VIDEO_TYPE = `${PACKAGE_ID}::master::Video`;
