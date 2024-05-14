@@ -21,7 +21,7 @@ import { getSigner } from "../../utils";
       encoding: "utf-8",
     });
 
-    // Profile will need to have at least BORROW_ACCESS level of access.
+    // Admin restricted operation.
     const res = await masterModule.unsuspendMaster(
       profileId,
       masterId,
