@@ -40,6 +40,7 @@ export const SALE_STATUS = {
   ON_SALE: 2,
   SUSPENDED: 3,
   CLAIMED: 4,
+  UNSUSPEND: 5, // ATTENTION: This is a custom status only used for the TS tests to differentiate between states. It does not exist in the contract sale statuses.
 };
 
 export const VIDEO_TYPE = `${PACKAGE_ID}::master::Video`;
