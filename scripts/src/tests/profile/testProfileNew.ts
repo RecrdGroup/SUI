@@ -24,7 +24,16 @@ import { RECRD_PRIVATE_KEY, USER_PRIVATE_KEY } from "../../config";
     );
 
     // Write the profile ID to a temp file for use in other scripts
-    writeFileSync(join(__dirname, "..", "tempProfileId.txt"), result.objectId);
+    writeFileSync(
+      join(__dirname, "..", "tempProfileId.txt"),
+      result.profile.objectId
+    );
+
+    // Write the identity ID to a temp file for use in other scripts
+    writeFileSync(
+      join(__dirname, "..", "tempIdentityId.txt"),
+      result.identity.objectId
+    );
 
     console.log("Profile created successfully:", result);
   } catch (error) {
