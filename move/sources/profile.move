@@ -153,7 +153,10 @@ module recrd::profile {
 
     // Cannot borrow during an active selling process where a Receipt has been issued
     // or if master has been suspended for violation.
-    assert!(master.sale_status<T>() != CLAIMED && master.sale_status<T>() != SUSPENDED, EBorrowNotAllowed);
+    assert!(
+      master.sale_status<T>() != CLAIMED && master.sale_status<T>() != SUSPENDED, 
+      EBorrowNotAllowed
+    );
 
     let promise = Promise { 
       master_id: object::id(&master),
