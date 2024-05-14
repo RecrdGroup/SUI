@@ -37,13 +37,13 @@ import { getSigner, getSuiAddress } from "../../utils";
     // Write the buyer profile ID to a temp file
     writeFileSync(
       join(__dirname, "..", "tempBuyerProfileId.txt"),
-      buyerProfileRes.objectId
+      buyerProfileRes.profile.objectId
     );
 
     // Create a new Receipt
     const res = await receiptModule.newReceipt(
       masterId,
-      buyerProfileRes.objectId,
+      buyerProfileRes.profile.objectId,
       sellerProfileId,
       getSigner(RECRD_PRIVATE_KEY)
     );
