@@ -23,12 +23,6 @@ module recrd::identity {
     self.transfer(addr);
   }
 
-  // === Public Functions ===
-  public fun burn(self: Identity) {
-    let Identity { id, profile: _ } = self;
-    id.delete();
-  }
-
   // === Private Functions ===
 
   // Internal transfer function for `Identity`.

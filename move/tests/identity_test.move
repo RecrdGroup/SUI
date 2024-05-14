@@ -14,7 +14,6 @@ module recrd::identity_test {
   // === Constants ===
   const ADMIN: address = @0xDECAF;
   const USER: address = @0xB00;
-  const USER_PROFILE: address = @0xC0FFEE;
   const USERNAME: vector<u8> = b"username";
   const USER_ID: vector<u8> = b"user_id";
 
@@ -45,19 +44,6 @@ module recrd::identity_test {
 
    
     core::burn_admincap(admin_cap);
-    ts::end(scenario);
-  }
-
-  #[test]
-  public fun burns_identity() {
-    let mut scenario = ts::begin(ADMIN);
-
-    let identity = identity::create_for_testing(
-      object::id_from_address(USER_PROFILE), 
-      ts::ctx(&mut scenario)
-    );
-
-    identity::burn(identity);
     ts::end(scenario);
   }
 }
