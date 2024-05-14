@@ -152,7 +152,8 @@ module recrd::profile {
     let master = self.receive_master_<T>(master);
 
     // Cannot borrow during an active selling process where a Receipt has been issued
-    assert!(master.sale_status<T>() != CLAIMED, EBorrowNotAllowed);
+    // or if master has been suspended for violation.
+    assert!(master.sale_status<T>() != CLAIMED && master.sale_status<T>() != SUSPENDED, EBorrowNotAllowed);
 
     let promise = Promise { 
       master_id: object::id(&master),
