@@ -12,7 +12,8 @@ module recrd::master {
   use sui::package;
   use sui::display;
   use recrd::core::AdminCap;
-  
+  use recrd::identity::Identity;
+
   // === Errors ===
   const EHashtagDoesNotExist: u64 = 1;
   const EInvalidNewRevenueTotal: u64 = 2;
@@ -406,7 +407,8 @@ module recrd::master {
 
   // Lists Master for sale by setting status to ON_SALE. 
   // This allows a Receipt to be issued for a Master.
-  public fun list<T>(master: &mut Master<T>) {
+  // Only users that hold a `Identity` cap object can call this.
+  public fun list<T>(master: &mut Master<T>, _: &Identity) {
     // Masters that are SUSPENDED cannot be set for sale. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeListed);
 
@@ -417,8 +419,9 @@ module recrd::master {
     master.sale_status = ON_SALE;
   }
 
-  // Unlists Master from market by reverting status to RETAINED. 
-  public fun unlist<T>(master: &mut Master<T>) {
+  // Unlists Master from market by reverting status to RETAINED.
+  // Only users that hold a `Identity` cap object can call this.
+  public fun unlist<T>(master: &mut Master<T>, _: &Identity) {
     // Masters that are SUSPENDED cannot revert status to retained. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeRetained);
 

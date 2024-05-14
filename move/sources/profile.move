@@ -17,9 +17,7 @@ module recrd::profile {
   use recrd::core::AdminCap;
   use recrd::master::{Master};
   use recrd::receipt::{Self, Receipt};
-
-  // === Custom Receivers ===
-  use fun new_cap_ as ID.new_cap_;
+  use recrd::identity;
 
   // === Errors ===
   const ENewValueShouldBeHigher: u64 = 0;
@@ -91,12 +89,6 @@ module recrd::profile {
 	  commission_revenue: u64
   }
 
-  // Profile identity for users to link their account to their Profile. 
-  public struct Identity has key {
-    id: UID,
-    profile: ID,
-  }
-
   // === Public Functions ===
 
   /// Creates a new `Profile` object and a new `Identity` for the user.
@@ -125,15 +117,8 @@ module recrd::profile {
     transfer::share_object(profile);
 
     // Give the user an Identity cap tied to their Profile.
-    let identity = profile_id.new_cap_(ctx);
-    transfer::transfer(identity, addr);
-  }
-
-  /// Admin can send more Identities to users that have existing Profile. 
-  public fun new_cap(
-    _: &AdminCap, profile: &Profile, ctx: &mut TxContext
-  ): Identity {
-    profile.id.to_inner().new_cap_(ctx)
+    let identity = identity::new(profile_id, ctx);
+    identity::transfer(identity, addr);
   }
 
   /// Admin authorizes user with level of access to the profile.
@@ -373,14 +358,6 @@ module recrd::profile {
     self: &mut Profile, master_to_receive: Receiving<Master<T>>
   ): Master<T> {
     transfer::public_receive<Master<T>>(&mut self.id, master_to_receive)
-  }
-
-  /// Creates and returns a new Identity object. 
-  fun new_cap_(profile_id: ID, ctx: &mut TxContext): Identity {
-    Identity {
-      id: object::new(ctx),
-      profile: profile_id,
-    }
   }
 
   /// Updates the access level of given address in the `Profile` authorization table.

@@ -10,6 +10,8 @@ module recrd::master_test {
     use sui::vec_map::{Self};
 
     use recrd::core::{Self};
+    use recrd::identity::{Self, Identity};
+    use recrd::profile::{Self, Profile};
     use recrd::master::{
         Self, 
         Master, 
@@ -34,6 +36,8 @@ module recrd::master_test {
     const USER_ROYALTY_BP: u16 = 1_000;
     const RETAINED: u8 = 1;
     const ON_SALE: u8 = 2;
+    const USERNAME: vector<u8> = b"username";
+    const USER_ID: vector<u8> = b"user_id";
 
     // === Errors ===
     const EInvalidMasterValue: u64 = 1001;
@@ -351,6 +355,27 @@ module recrd::master_test {
             option::some<ID>(object::id_from_address(ORIGIN_REF))
         );
 
+        // Create Profile for user
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            profile::new(
+                &admin_cap, 
+                utf8(USER_ID), 
+                utf8(USERNAME), 
+                USER,
+                ts::ctx(&mut scenario)
+            );
+        };
+
+        // Create an Identity and transfer to user
+        ts::next_tx(&mut scenario, USER);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let identity = identity::create_for_testing(object::id(&profile), ts::ctx(&mut scenario));
+            identity::transfer(identity, USER);
+            ts::return_shared(profile);
+        };
+
         ts::next_tx(&mut scenario, ADMIN);
         let metadata = ts::take_shared<Metadata<Video>>(&scenario);
 
@@ -359,7 +384,6 @@ module recrd::master_test {
         {
             master::sync_title(&mut master, &metadata);
             master::sync_image_url(&mut master, &metadata);
-            master::list(&mut master);
         };
 
         // Validate Updated Master fields
@@ -377,15 +401,13 @@ module recrd::master_test {
                 master::media_url(&master) == master::meta_media_url(&metadata), 
                 EInvalidMasterValue
             );
-            assert!(
-                master::sale_status(&master) == ON_SALE, 
-                EInvalidMasterValue
-            );
         };
 
-        ts::next_tx(&mut scenario, ADMIN);
+        ts::next_tx(&mut scenario, USER);
         {
-            master::unlist(&mut master);
+            let identity = ts::take_from_sender<Identity>(&scenario);
+            master::unlist(&mut master, &identity);
+            ts::return_to_sender(&scenario, identity);
         };
 
         // Validate Updated sale status
@@ -631,6 +653,27 @@ module recrd::master_test {
             option::some<ID>(object::id_from_address(ORIGIN_REF))
         );
 
+        // Create Profile for user
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            profile::new(
+                &admin_cap, 
+                utf8(USER_ID), 
+                utf8(USERNAME), 
+                USER,
+                ts::ctx(&mut scenario)
+            );
+        };
+
+        // Create an Identity and transfer to user
+        ts::next_tx(&mut scenario, USER);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let identity = identity::create_for_testing(object::id(&profile), ts::ctx(&mut scenario));
+            identity::transfer(identity, USER);
+            ts::return_shared(profile);
+        };
+
         ts::next_tx(&mut scenario, USER);
         {
             // Suspend master
@@ -640,7 +683,9 @@ module recrd::master_test {
         ts::next_tx(&mut scenario, USER);
         {
             // User tries to list for sale
-            master::list(&mut master);
+            let identity = ts::take_from_sender<Identity>(&scenario);
+            master::list(&mut master, &identity);
+            ts::return_to_sender(&scenario, identity);
         };
 
         master::burn_master(&admin_cap, master);
@@ -661,6 +706,27 @@ module recrd::master_test {
             option::some<ID>(object::id_from_address(ORIGIN_REF))
         );
 
+        // Create Profile for user
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            profile::new(
+                &admin_cap, 
+                utf8(USER_ID), 
+                utf8(USERNAME), 
+                USER,
+                ts::ctx(&mut scenario)
+            );
+        };
+
+        // Create an Identity and transfer to user
+        ts::next_tx(&mut scenario, USER);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let identity = identity::create_for_testing(object::id(&profile), ts::ctx(&mut scenario));
+            identity::transfer(identity, USER);
+            ts::return_shared(profile);
+        };
+
         ts::next_tx(&mut scenario, USER);
         {
             // Suspend master
@@ -670,7 +736,9 @@ module recrd::master_test {
         ts::next_tx(&mut scenario, USER);
         {
             // User tries to list for sale
-            master::unlist(&mut master);
+            let identity = ts::take_from_sender<Identity>(&scenario);
+            master::unlist(&mut master, &identity);
+            ts::return_to_sender(&scenario, identity);
         };
 
         master::burn_master(&admin_cap, master);

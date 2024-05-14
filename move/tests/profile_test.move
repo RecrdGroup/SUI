@@ -6,8 +6,9 @@ module recrd::profile_test {
     use sui::test_scenario::{Self as ts, Scenario};
 
     use recrd::core::{Self};
-    use recrd::profile::{Self, Profile, Identity, ENewValueShouldBeHigher, ENotAuthorized};
+    use recrd::profile::{Self, Profile, ENewValueShouldBeHigher, ENotAuthorized};
     use recrd::master::{Video};
+    use recrd::identity::{Identity};
     use recrd::master_test;
 
     // === Constants ===
