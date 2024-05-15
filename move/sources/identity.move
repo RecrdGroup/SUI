@@ -19,6 +19,7 @@ module recrd::identity {
     profile_id.new(ctx)
   }
 
+  /// Admin can transfer Identities to other users.
   public fun admin_transfer(_: &AdminCap, self: Identity, addr: address) {
     self.transfer(addr);
   }
