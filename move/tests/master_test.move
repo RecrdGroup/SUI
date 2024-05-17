@@ -10,7 +10,7 @@ module recrd::master_test {
     use sui::vec_map::{Self};
 
     use recrd::core::{Self};
-    use recrd::identity::{Self, Identity};
+    use recrd::identity;
     use recrd::profile::{Self, Profile};
     use recrd::master::{
         Self, 
@@ -405,9 +405,7 @@ module recrd::master_test {
 
         ts::next_tx(&mut scenario, USER);
         {
-            let identity = ts::take_from_sender<Identity>(&scenario);
-            master::unlist(&identity, &mut master);
-            ts::return_to_sender(&scenario, identity);
+            master::unlist(&mut master);
         };
 
         // Validate Updated sale status
@@ -683,9 +681,7 @@ module recrd::master_test {
         ts::next_tx(&mut scenario, USER);
         {
             // User tries to list for sale
-            let identity = ts::take_from_sender<Identity>(&scenario);
-            master::list(&identity, &mut master);
-            ts::return_to_sender(&scenario, identity);
+            master::list(&mut master);
         };
 
         master::burn_master(&admin_cap, master);
@@ -736,9 +732,7 @@ module recrd::master_test {
         ts::next_tx(&mut scenario, USER);
         {
             // User tries to list for sale
-            let identity = ts::take_from_sender<Identity>(&scenario);
-            master::unlist(&identity, &mut master);
-            ts::return_to_sender(&scenario, identity);
+            master::unlist(&mut master);
         };
 
         master::burn_master(&admin_cap, master);
