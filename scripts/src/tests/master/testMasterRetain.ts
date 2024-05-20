@@ -16,14 +16,6 @@ import { getSigner } from "../../utils";
       encoding: "utf-8",
     });
 
-    // Get last created Identity ID from temp file
-    const identityId = readFileSync(
-      join(__dirname, "..", "tempIdentityId.txt"),
-      {
-        encoding: "utf-8",
-      }
-    );
-
     // Get last minted Master ID from temp file
     const masterId = readFileSync(join(__dirname, "..", "tempMasterId.txt"), {
       encoding: "utf-8",
@@ -32,7 +24,6 @@ import { getSigner } from "../../utils";
     // Removing a master from sale to retained can only be performed by the user.
     const res = await masterModule.retainMaster(
       profileId,
-      identityId,
       masterId,
       getSigner(USER_PRIVATE_KEY)
     );

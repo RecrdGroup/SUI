@@ -355,7 +355,11 @@ export class ProfileModule {
       arguments: [
         txb.object(ADMIN_CAP),
         txb.object(profileId),
-        txb.object(masterId),
+        txb.receivingRef({
+          digest: masterRes.data?.digest!,
+          objectId: masterId,
+          version: masterRes.data?.version!,
+        }),
       ],
       typeArguments: [masterType!],
     });

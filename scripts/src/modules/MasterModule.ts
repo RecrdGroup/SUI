@@ -151,14 +151,12 @@ export class MasterModule {
    * This function internally calls `updateStatus` to update the sale status.
    *
    * @param profileId - The ID for the user profile.
-   * @param identityId - The ID for the user identity.
    * @param masterId - The ID for the Master to be listed.
    * @param signer - The signer that will sign and execute the transaction.
    * @returns A promise that resolves with the updated Master object.
    */
   async listMaster(
     profileId: string,
-    identityId: string,
     masterId: string,
     signer: Signer
   ): Promise<Master> {
@@ -166,8 +164,7 @@ export class MasterModule {
       profileId,
       masterId,
       SALE_STATUS.ON_SALE,
-      signer,
-      identityId
+      signer
     );
   }
 
@@ -197,23 +194,16 @@ export class MasterModule {
    * for sale.
    *
    * @param profileId - The ID for the user profile.
-   * @param identityId - The ID for the user identity.
    * @param masterId - The ID for the Master to be listed.
    * @param signer - The signer that will sign and execute the transaction.
    * @returns A promise that resolves with the updated Master object.
    */
-  async retainMaster(
-    profileId: string,
-    identityId: string,
-    masterId: string,
-    signer: Signer
-  ) {
+  async retainMaster(profileId: string, masterId: string, signer: Signer) {
     return await this.updateStatus(
       profileId,
       masterId,
       SALE_STATUS.RETAINED,
-      signer,
-      identityId
+      signer
     );
   }
 
@@ -242,15 +232,13 @@ export class MasterModule {
    * @param masterId - The ID of the Master to update.
    * @param status - The new sale status to be set.
    * @param signer - The signer that will sign and execute the transaction.
-   * @param identityId - The ID of the user identity associated with the profile. Only required when listing or unlisting.
    * @returns A promise that resolves with the updated Master object.
    */
   private async updateStatus(
     profileId: string,
     masterId: string,
     status: number,
-    signer: Signer,
-    identityId?: string
+    signer: Signer
   ): Promise<Master> {
     // Get the Master type
     const masterType = await this.getMasterType(masterId);
@@ -268,8 +256,6 @@ export class MasterModule {
     let capArgs: any[] = [];
     switch (status) {
       case SALE_STATUS.ON_SALE:
-        if (!identityId) throw new Error("IdentityId is required for unlist");
-        capArgs = [txb.object(identityId)];
         functionName = "list";
         break;
       case SALE_STATUS.SUSPENDED:
@@ -277,40 +263,58 @@ export class MasterModule {
         capArgs = [txb.object(ADMIN_CAP)];
         break;
       case SALE_STATUS.RETAINED:
-        if (!identityId) throw new Error("IdentityId is required for unlist");
         functionName = "unlist";
-        capArgs = [txb.object(identityId)];
         break;
       case SALE_STATUS.UNSUSPEND:
         functionName = "unsuspend";
         capArgs = [txb.object(ADMIN_CAP)];
         break;
       default:
-        if (!identityId) throw new Error("IdentityId is required for unlist");
         functionName = "unlist";
-        capArgs = [txb.object(identityId)];
         break;
     }
 
-    // First, we need to borrow the Master from the Profile
-    let [master, promise] = txb.moveCall({
-      target: `${PACKAGE_ID}::profile::borrow_master`,
-      arguments: [txb.object(profileId), txb.object(masterId)],
-      typeArguments: [masterType],
-    });
+    let master;
+    let promise;
 
+    if (status === SALE_STATUS.UNSUSPEND) {
+      // If we are trying to unsuspend we can not borrow, so the admin has to receive.
+      master = txb.moveCall({
+        target: `${PACKAGE_ID}::profile::admin_receive_master`,
+        arguments: [
+          txb.object(ADMIN_CAP),
+          txb.object(profileId),
+          txb.object(masterId),
+        ],
+        typeArguments: [masterType!],
+      });
+    } else {
+      // For the rest of update operations, we borrow the Master from the Profile.
+      [master, promise] = txb.moveCall({
+        target: `${PACKAGE_ID}::profile::borrow_master`,
+        arguments: [txb.object(profileId), txb.object(masterId)],
+        typeArguments: [masterType],
+      });
+    }
+
+    // Perform the update operation
     txb.moveCall({
       target: `${PACKAGE_ID}::master::${functionName}`,
       arguments: [...capArgs, master],
       typeArguments: [masterType],
     });
 
-    // Return the updated Master object to the Profile and resolve the promise
-    txb.moveCall({
-      target: `${PACKAGE_ID}::profile::return_master`,
-      arguments: [txb.object(master), promise],
-      typeArguments: [masterType],
-    });
+    if (status === SALE_STATUS.UNSUSPEND) {
+      // If the admin received, they then need to send the master back to the profile.
+      txb.transferObjects([master], profileId);
+    } else {
+      // For the rest of the update operations, return the updated Master object to the Profile and resolve the promise
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::return_master`,
+        arguments: [txb.object(master!), promise!],
+        typeArguments: [masterType],
+      });
+    }
 
     // Sign and execute the transaction
     const res = await executeTransaction({ txb, signer });
