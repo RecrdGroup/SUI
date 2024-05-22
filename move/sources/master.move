@@ -22,6 +22,7 @@ module recrd::master {
   const EInvalidMetadataForMaster: u64 = 6;
   const EItemHasBeenClaimed: u64 = 7;
   const ECanOnlyRetainSuspendedItem: u64 = 8;
+  const EUpdateNotAllowed: u64 = 9;
 
   // === Constants ===
   const RETAINED: u8 = 1;
@@ -52,6 +53,8 @@ module recrd::master {
     media_url: String,
     // sale status of master
     sale_status: u8,
+    // whether master resides in RECRD ecosystem
+    exported: bool,
   }
 
   // Master metadata object that will hold all master-related metadata.
@@ -237,6 +240,7 @@ module recrd::master {
       image_url,
       media_url,
       sale_status,
+      exported: false,
     }
   }
 
@@ -251,6 +255,7 @@ module recrd::master {
       image_url: _,
       media_url: _,
       sale_status: _,
+      exported: _,
     } = master;
 
     // Delete the `Master<T>` object and its UID.
@@ -285,6 +290,18 @@ module recrd::master {
     id.delete()
   }
   
+  /// Admin can update the `exported` field in case the `Master` is moved from
+  /// a `Profile` to a user address.
+  public fun export<T>(_: &AdminCap, master: &mut Master<T>) {
+    master.exported = true;
+  }
+
+  /// Update the `exported` field when a `Master` is being brought back into 
+  /// the RECRD ecosystem under a `Profile`.
+  public fun import<T>(_: &AdminCap, master: &mut Master<T>) {
+    master.exported = false;
+  }
+
   // === Master Accessors ===
 
   public fun metadata_ref<T>(master: &Master<T>): &ID {
@@ -458,6 +475,8 @@ module recrd::master {
     master: &Master<T>, metadata: &mut Metadata<T>, title: String
   ) {
     assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
+    // Only allow update when Master is in RECRD ecosystem.
+    assert!(master.exported == false, EUpdateNotAllowed);
     metadata.title = title;
   }
 
@@ -467,6 +486,8 @@ module recrd::master {
     master: &Master<T>, metadata: &mut Metadata<T>, description: String
   ) {
     assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
+    // Only allow update when Master is in RECRD ecosystem.
+    assert!(master.exported == false, EUpdateNotAllowed);
     metadata.description = description;
   }
 
@@ -476,6 +497,8 @@ module recrd::master {
     master: &Master<T>, metadata: &mut Metadata<T>, image_url: String
   ) {
     assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
+    // Only allow update when Master is in RECRD ecosystem.
+    assert!(master.exported == false, EUpdateNotAllowed);
     metadata.image_url = image_url;
   }
   
