@@ -75,7 +75,7 @@ module recrd::profile {
     authorizations: Table<address, u8>,
     // total time the user has spent on watching videos
     watch_time: u64, // in seconds
-    // (TBD) dynamic fields for every video watched
+    // Number of videos watched
     videos_watched: u64,
 	  // Number of adverts seen
 	  adverts_watched: u64,
