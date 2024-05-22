@@ -52,9 +52,7 @@ module recrd::master {
     // Media file URL for master video or audio
     media_url: String,
     // sale status of master
-    sale_status: u8,
-    // whether master resides in RECRD ecosystem
-    exported: bool,
+    sale_status: u8
   }
 
   // Master metadata object that will hold all master-related metadata.
@@ -86,13 +84,13 @@ module recrd::master {
     // revenue total (synced by RECRD)
     revenue_total: u64,
     // revenue available to be paid to creator (synced by RECRD)
-    // TODO: clarify if this amount is to be paid to `creator_profile_id`
     revenue_available: u64, 
     // keep track of revenue paid out
-    // TODO: clarify if this amount refers to `creator_profile_id`
     revenue_paid: u64,
     // (optional) show how much revenue is pending for withdrawal
     revenue_pending: u64,
+    // whether master resides in RECRD ecosystem
+    master_exported: bool,
   }
 
   // One-time-function that runs when the contract is deployed.
@@ -227,6 +225,7 @@ module recrd::master {
       revenue_available,
       revenue_paid,
       revenue_pending,
+      master_exported: false
     };
 
     // Publicly share the metadata object. 
@@ -239,8 +238,7 @@ module recrd::master {
       title,
       image_url,
       media_url,
-      sale_status,
-      exported: false,
+      sale_status
     }
   }
 
@@ -254,8 +252,7 @@ module recrd::master {
       title: _,
       image_url: _,
       media_url: _,
-      sale_status: _,
-      exported: _,
+      sale_status: _
     } = master;
 
     // Delete the `Master<T>` object and its UID.
@@ -284,6 +281,7 @@ module recrd::master {
       revenue_available: _,
       revenue_paid: _,
       revenue_pending: _,
+      master_exported: _
     } = metadata;
 
     // Delete the `Metadata<T>` object and its UID.
@@ -292,14 +290,14 @@ module recrd::master {
   
   /// Admin can update the `exported` field in case the `Master` is moved from
   /// a `Profile` to a user address.
-  public fun export<T>(_: &AdminCap, master: &mut Master<T>) {
-    master.exported = true;
+  public fun export<T>(_: &AdminCap, metadata: &mut Metadata<T>) {
+    metadata.master_exported = true;
   }
 
   /// Update the `exported` field when a `Master` is being brought back into 
   /// the RECRD ecosystem under a `Profile`.
-  public fun import<T>(_: &AdminCap, master: &mut Master<T>) {
-    master.exported = false;
+  public fun import<T>(_: &AdminCap, metadata: &mut Metadata<T>) {
+    metadata.master_exported = false;
   }
 
   // === Master Accessors ===
@@ -476,7 +474,7 @@ module recrd::master {
   ) {
     assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     // Only allow update when Master is in RECRD ecosystem.
-    assert!(master.exported == false, EUpdateNotAllowed);
+    assert!(metadata.master_exported == false, EUpdateNotAllowed);
     metadata.title = title;
   }
 
@@ -487,7 +485,7 @@ module recrd::master {
   ) {
     assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     // Only allow update when Master is in RECRD ecosystem.
-    assert!(master.exported == false, EUpdateNotAllowed);
+    assert!(metadata.master_exported == false, EUpdateNotAllowed);
     metadata.description = description;
   }
 
@@ -498,7 +496,7 @@ module recrd::master {
   ) {
     assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     // Only allow update when Master is in RECRD ecosystem.
-    assert!(master.exported == false, EUpdateNotAllowed);
+    assert!(metadata.master_exported == false, EUpdateNotAllowed);
     metadata.image_url = image_url;
   }
   
