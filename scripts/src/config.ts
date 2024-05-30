@@ -14,6 +14,7 @@ config({
 // Load the environment variables
 export const SUI_NETWORK = process.env.SUI_NETWORK!;
 export const PACKAGE_ID = process.env.RECRD_PACKAGE_ID!;
+export const DIGEST = process.env.DIGEST!;
 export const ADMIN_CAP = process.env.CORE_ADMIN_CAP!;
 export const PUBLISHER = process.env.MASTER_PUBLISHER!;
 export const REGISTRY = process.env.REGISTRY!;
@@ -44,7 +45,11 @@ export const SALE_STATUS = {
 };
 
 export const VIDEO_TYPE = `${PACKAGE_ID}::master::Video`;
-export const AUDIO_TYPE = `${PACKAGE_ID}::master::Audio`;
+export const SOUND_TYPE = `${PACKAGE_ID}::master::Sound`;
+export const MASTER_VIDEO_TYPE = `${PACKAGE_ID}::master::Master<${VIDEO_TYPE}>`;
+export const MASTER_SOUND_TYPE = `${PACKAGE_ID}::master::Master<${SOUND_TYPE}>`;
+export const METADATA_VIDEO_TYPE = `${PACKAGE_ID}::master::Metadata<${VIDEO_TYPE}>`;
+export const METADATA_SOUND_TYPE = `${PACKAGE_ID}::master::Metadata<${SOUND_TYPE}>`;
 export const LOYALTY_FREE_URL =
   "https://images.pexels.com/photos/19987062/pexels-photo-19987062/free-photo-of-a-close-up-of-pink-flowers-in-a-field.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2";
 

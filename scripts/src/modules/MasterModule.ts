@@ -7,7 +7,13 @@ import {
   TransactionResult,
 } from "@mysten/sui.js/transactions";
 import { executeTransaction, getMasterT, getMasterMetadataT } from "../utils";
-import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
+import {
+  PACKAGE_ID,
+  ADMIN_CAP,
+  suiClient,
+  VIDEO_TYPE,
+  SOUND_TYPE,
+} from "../config";
 import { SUI_FRAMEWORK_ADDRESS } from "@mysten/sui.js/utils";
 import { Master, MasterMetadata } from "../interfaces";
 import { Signer } from "@mysten/sui.js/cryptography";
@@ -36,9 +42,6 @@ interface mintMasterResponse {
   master: SuiObjectChangeCreated | undefined;
   metadata: SuiObjectChangeCreated | undefined;
 }
-
-export const VIDEO_TYPE = `${PACKAGE_ID}::master::Video`;
-export const AUDIO_TYPE = `${PACKAGE_ID}::master::Audio`;
 
 export class MasterModule {
   /**
@@ -115,7 +118,7 @@ export class MasterModule {
         txb.pure(params.revenue_pending),
         txb.pure(params.sale_status),
       ],
-      typeArguments: [params.type === "Video" ? VIDEO_TYPE : AUDIO_TYPE],
+      typeArguments: [params.type === "Video" ? VIDEO_TYPE : SOUND_TYPE],
     });
 
     txb.transferObjects([masterTx], params.creator_profile_id);

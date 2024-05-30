@@ -4,6 +4,7 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "updateDisplay": "ts-node src/updateDisplay.ts",
     "testProfileNew": "ts-node src/tests/profile/testProfileNew.ts",
     "testProfileAuthorize": "ts-node src/tests/profile/testProfileAuthorize.ts",
     "testProfileDeauthorize": "ts-node src/tests/profile/testProfileDeauthorize.ts",
