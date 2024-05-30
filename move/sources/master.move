@@ -100,10 +100,12 @@ module recrd::master {
 
     // Create the display for `Master<T>`
     let master_keys = vector[
-      utf8(b"Name"),
-      utf8(b"Image URL"),
-      utf8(b"Media URL"),
-      utf8(b"Metadata Ref"),
+      utf8(b"name"),
+      utf8(b"image_url"),
+      utf8(b"medial_url"),
+      utf8(b"metadata_ref"),
+      utf8(b"project_url"),
+      utf8(b"creator"),
     ];
 
     let master_values = vector[
@@ -111,6 +113,8 @@ module recrd::master {
       utf8(b"{image_url}"),
       utf8(b"{media_url}"),
       utf8(b"{metadata_ref}"),
+      utf8(b"https://www.recrd.com/"),
+      utf8(b"RECRD"),
     ];
 
     // Create and populate display for `Master<Video>`
@@ -129,15 +133,17 @@ module recrd::master {
 
     // Create the display for `Metadata<T>`
     let metadata_keys = vector[
-      utf8(b"Title"),
-      utf8(b"Description"),
-      utf8(b"Image URL"),
-      utf8(b"Media URL"),
-      utf8(b"Hashtags"),
-      utf8(b"Creator"),
-      utf8(b"Parent"),
-      utf8(b"Origin"),
-      utf8(b"Expressions"),
+      utf8(b"name"),
+      utf8(b"description"),
+      utf8(b"image_url"),
+      utf8(b"media_url"),
+      utf8(b"hashtags"),
+      utf8(b"creator_profile"),
+      utf8(b"parent"),
+      utf8(b"origin"),
+      utf8(b"expressions"),
+      utf8(b"project_url"),
+      utf8(b"creator"),
     ];
 
     let metadata_values = vector[
@@ -150,6 +156,8 @@ module recrd::master {
       utf8(b"{master_metadata_parent}"),
       utf8(b"{master_metadata_origin}"),
       utf8(b"{expressions}"),
+      utf8(b"https://www.recrd.com/"),
+      utf8(b"RECRD"),
     ];
 
     // Create and populate display for `Metadata<Video>`
