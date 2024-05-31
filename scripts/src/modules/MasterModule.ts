@@ -7,7 +7,13 @@ import {
   TransactionResult,
 } from "@mysten/sui.js/transactions";
 import { executeTransaction, getMasterT, getMasterMetadataT } from "../utils";
-import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
+import {
+  PACKAGE_ID,
+  ADMIN_CAP,
+  suiClient,
+  VIDEO_TYPE,
+  SOUND_TYPE,
+} from "../config";
 import { SUI_FRAMEWORK_ADDRESS } from "@mysten/sui.js/utils";
 import { Master, MasterMetadata } from "../interfaces";
 import { Signer } from "@mysten/sui.js/cryptography";
@@ -36,9 +42,6 @@ interface mintMasterResponse {
   master: SuiObjectChangeCreated | undefined;
   metadata: SuiObjectChangeCreated | undefined;
 }
-
-export const VIDEO_TYPE = `${PACKAGE_ID}::master::Video`;
-export const AUDIO_TYPE = `${PACKAGE_ID}::master::Audio`;
 
 export class MasterModule {
   /**
@@ -115,7 +118,7 @@ export class MasterModule {
         txb.pure(params.revenue_pending),
         txb.pure(params.sale_status),
       ],
-      typeArguments: [params.type === "Video" ? VIDEO_TYPE : AUDIO_TYPE],
+      typeArguments: [params.type === "Video" ? VIDEO_TYPE : SOUND_TYPE],
     });
 
     txb.transferObjects([masterTx], params.creator_profile_id);
@@ -208,6 +211,23 @@ export class MasterModule {
   }
 
   /**
+   * Unsuspends a master by updating its status to 'RETAINED'.
+   *
+   * @param profileId - The ID for the user profile.
+   * @param masterId - The ID for the Master to be listed.
+   * @param signer - The signer that will sign and execute the transaction.
+   * @returns A promise that resolves with the updated Master object.
+   */
+  async unsuspendMaster(profileId: string, masterId: string, signer: Signer) {
+    return await this.updateStatus(
+      profileId,
+      masterId,
+      SALE_STATUS.UNSUSPEND,
+      signer
+    );
+  }
+
+  /**
    * Internal function to update the sale status of a Master. It makes the necessary
    * moveCalls to submit transactions.
    *
@@ -235,49 +255,69 @@ export class MasterModule {
 
     // Determine the function name based on the status
     let functionName: string;
+    // Determine the capability args based on the status
+    let capArgs: any[] = [];
     switch (status) {
       case SALE_STATUS.ON_SALE:
         functionName = "list";
         break;
       case SALE_STATUS.SUSPENDED:
         functionName = "suspend";
+        capArgs = [txb.object(ADMIN_CAP)];
         break;
       case SALE_STATUS.RETAINED:
         functionName = "unlist";
+        break;
+      case SALE_STATUS.UNSUSPEND:
+        functionName = "unsuspend";
+        capArgs = [txb.object(ADMIN_CAP)];
         break;
       default:
         functionName = "unlist";
         break;
     }
 
-    // First, we need to borrow the Master from the Profile
-    let [master, promise] = txb.moveCall({
-      target: `${PACKAGE_ID}::profile::borrow_master`,
-      arguments: [txb.object(profileId), txb.object(masterId)],
-      typeArguments: [masterType],
-    });
+    let master;
+    let promise;
 
-    // Call the contract to list for sale
-    if (status == SALE_STATUS.SUSPENDED) {
-      txb.moveCall({
-        target: `${PACKAGE_ID}::master::${functionName}`,
-        arguments: [txb.object(ADMIN_CAP), master],
-        typeArguments: [masterType],
+    if (status === SALE_STATUS.UNSUSPEND) {
+      // If we are trying to unsuspend we can not borrow, so the admin has to receive.
+      master = txb.moveCall({
+        target: `${PACKAGE_ID}::profile::admin_receive_master`,
+        arguments: [
+          txb.object(ADMIN_CAP),
+          txb.object(profileId),
+          txb.object(masterId),
+        ],
+        typeArguments: [masterType!],
       });
     } else {
-      txb.moveCall({
-        target: `${PACKAGE_ID}::master::${functionName}`,
-        arguments: [master],
+      // For the rest of update operations, we borrow the Master from the Profile.
+      [master, promise] = txb.moveCall({
+        target: `${PACKAGE_ID}::profile::borrow_master`,
+        arguments: [txb.object(profileId), txb.object(masterId)],
         typeArguments: [masterType],
       });
     }
 
-    // Return the updated Master object to the Profile and resolve the promise
+    // Perform the update operation
     txb.moveCall({
-      target: `${PACKAGE_ID}::profile::return_master`,
-      arguments: [txb.object(master), promise],
+      target: `${PACKAGE_ID}::master::${functionName}`,
+      arguments: [...capArgs, master],
       typeArguments: [masterType],
     });
+
+    if (status === SALE_STATUS.UNSUSPEND) {
+      // If the admin received, they then need to send the master back to the profile.
+      txb.transferObjects([master], profileId);
+    } else {
+      // For the rest of the update operations, return the updated Master object to the Profile and resolve the promise
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::return_master`,
+        arguments: [txb.object(master!), promise!],
+        typeArguments: [masterType],
+      });
+    }
 
     // Sign and execute the transaction
     const res = await executeTransaction({ txb, signer });
@@ -466,12 +506,14 @@ export class MasterModule {
   /**
    * Syncs the title of a Master object with its corresponding Metadata title.
    *
+   * @param profileId - The ID of the Profile that contains the Master.
    * @param masterId - The ID of the Master whose title is to be synced.
    * @param metadataId - The ID of the Metadata from which to sync the title.
    * @param signer - The signer that will sign and execute the transaction.
    * @returns A promise that resolves with the updated Master object.
    */
   async syncMasterTitle(
+    profileId: string,
     masterId: string,
     metadataId: string,
     signer: Signer
@@ -483,9 +525,23 @@ export class MasterModule {
       throw new Error("Couldn't get Master type");
     }
 
+    // First, we need to borrow the Master from the Profile
+    let [master, promise] = txb.moveCall({
+      target: `${PACKAGE_ID}::profile::borrow_master`,
+      arguments: [txb.object(profileId), txb.object(masterId)],
+      typeArguments: [masterType],
+    });
+
     txb.moveCall({
       target: `${PACKAGE_ID}::master::sync_title`,
-      arguments: [txb.object(masterId), txb.object(metadataId)],
+      arguments: [master, txb.object(metadataId)],
+      typeArguments: [masterType],
+    });
+
+    // Return the updated Master object to the Profile and resolve the promise
+    txb.moveCall({
+      target: `${PACKAGE_ID}::profile::return_master`,
+      arguments: [txb.object(master), promise],
       typeArguments: [masterType],
     });
 
@@ -621,12 +677,16 @@ export class MasterModule {
   /**
    * Updates the title of a Metadata object.
    *
+   * @param profileId - The ID of the Profile that contains the Master.
+   * @param masterId - The ID of the Master to update.
    * @param metadataId - The ID of the Metadata to update.
    * @param newTitle - The new title to set for the Metadata.
    * @param signer - The signer that will sign and execute the transaction.
    * @returns A promise that resolves with the updated Master Metadata object.
    */
   async updateMetadataTitle(
+    profileId: string,
+    masterId: string,
     metadataId: string,
     newTitle: string,
     signer: Signer
@@ -638,10 +698,31 @@ export class MasterModule {
       throw new Error("Couldn't get Master Metadata type");
     }
 
+    // Get the Master type
+    const masterType = await this.getMasterType(masterId);
+
+    if (!masterType) {
+      throw new Error("Couldn't get Master type");
+    }
+
+    // First, we need to borrow the Master from the Profile
+    let [master, promise] = txb.moveCall({
+      target: `${PACKAGE_ID}::profile::borrow_master`,
+      arguments: [txb.object(profileId), txb.object(masterId)],
+      typeArguments: [masterType],
+    });
+
     txb.moveCall({
       target: `${PACKAGE_ID}::master::set_title`,
-      arguments: [txb.object(metadataId), txb.pure(newTitle)],
+      arguments: [master, txb.object(metadataId), txb.pure(newTitle)],
       typeArguments: [metadataType],
+    });
+
+    // Return the Master object to the Profile and resolve the promise
+    txb.moveCall({
+      target: `${PACKAGE_ID}::profile::return_master`,
+      arguments: [txb.object(master), promise],
+      typeArguments: [masterType],
     });
 
     // Sign and execute the transaction

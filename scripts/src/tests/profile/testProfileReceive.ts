@@ -10,14 +10,22 @@ import { join } from "path";
 (async () => {
   try {
     const profileModule = new ProfileModule();
-    
+
     // Get last created Profile ID from temp file
-    const profileId = readFileSync(join(__dirname, '..', 'tempProfileId.txt'), { encoding: 'utf-8' });
+    const profileId = readFileSync(join(__dirname, "..", "tempProfileId.txt"), {
+      encoding: "utf-8",
+    });
 
     // Get last minted Master ID from temp file
-    const masterId = readFileSync(join(__dirname, '..', 'tempMasterId.txt'), { encoding: 'utf-8' });
+    const masterId = readFileSync(join(__dirname, "..", "tempMasterId.txt"), {
+      encoding: "utf-8",
+    });
 
-    const res = await profileModule.receiveMaster(profileId, masterId, getSigner(USER_PRIVATE_KEY));
+    const res = await profileModule.receiveMaster(
+      profileId,
+      masterId,
+      getSigner(RECRD_PRIVATE_KEY)
+    );
 
     console.log("Receive Master response:", res);
   } catch (error) {

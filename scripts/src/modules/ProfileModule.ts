@@ -40,7 +40,10 @@ export class ProfileModule {
     username: string,
     userAddress: string,
     signer: Signer
-  ): Promise<SuiObjectChangeCreated> {
+  ): Promise<{
+    profile: SuiObjectChangeCreated;
+    identity: SuiObjectChangeCreated;
+  }> {
     // Create a transaction block
     const txb = new TransactionBlock();
 
@@ -65,7 +68,7 @@ export class ProfileModule {
       );
     }
 
-    return response.objectChanges?.find((object) => {
+    const profileRes = response.objectChanges?.find((object) => {
       return (
         object.type === "created" &&
         object.objectType.startsWith(`${PACKAGE_ID}::profile::Profile`)
@@ -77,6 +80,18 @@ export class ProfileModule {
           initial_shared_version: string;
         };
       };
+    };
+
+    const identityRes = response.objectChanges?.find((object) => {
+      return (
+        object.type === "created" &&
+        object.objectType.startsWith(`${PACKAGE_ID}::identity::Identity`)
+      );
+    }) as SuiObjectChangeCreated;
+
+    return {
+      profile: profileRes,
+      identity: identityRes,
     };
   }
 
@@ -336,13 +351,17 @@ export class ProfileModule {
 
     // Call the smart contract function to receive a Master object
     let master = txb.moveCall({
-      target: `${PACKAGE_ID}::profile::admin_receive`,
+      target: `${PACKAGE_ID}::profile::admin_receive_master`,
       arguments: [
         txb.object(ADMIN_CAP),
         txb.object(profileId),
-        txb.object(masterId),
+        txb.receivingRef({
+          digest: masterRes.data?.digest!,
+          objectId: masterId,
+          version: masterRes.data?.version!,
+        }),
       ],
-      typeArguments: [`${PACKAGE_ID}::master::Master<${masterType}>`],
+      typeArguments: [masterType!],
     });
 
     // Get the Sui address of the signer

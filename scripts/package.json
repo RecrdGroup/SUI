@@ -4,6 +4,7 @@
   "description": "",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "updateDisplay": "ts-node src/updateDisplay.ts",
     "testProfileNew": "ts-node src/tests/profile/testProfileNew.ts",
     "testProfileAuthorize": "ts-node src/tests/profile/testProfileAuthorize.ts",
     "testProfileDeauthorize": "ts-node src/tests/profile/testProfileDeauthorize.ts",
@@ -13,12 +14,14 @@
     "testMasterReceiveAndBurn": "ts-node src/tests/master/testMasterReceiveAndBurn.ts",
     "testGetMaster": "ts-node src/tests/master/testGetMaster.ts",
     "testGetMasterMetadata": "ts-node src/tests/master/testGetMasterMetadata.ts",
+    "testMetadataSetTitleAndSync": "ts-node src/tests/master/testMetadataSetTitleAndSync.ts",
     "testMasterMetadataBurn": "ts-node src/tests/master/testMasterMetadataBurn.ts",
     "testReceiptMint": "ts-node src/tests/receipt/testReceiptMint.ts",
     "testMasterBuy": "ts-node src/tests/master/testMasterBuy.ts",
     "testMasterSetOnSale": "ts-node src/tests/master/testMasterSetOnSale.ts",
     "testMasterRetain": "ts-node src/tests/master/testMasterRetain.ts",
-    "testMasterSuspend": "ts-node src/tests/master/testMasterSuspend.ts"
+    "testMasterSuspend": "ts-node src/tests/master/testMasterSuspend.ts",
+    "testMasterUnsuspend": "ts-node src/tests/master/testMasterUnsuspend.ts"
   },
   "author": "",
   "license": "ISC",

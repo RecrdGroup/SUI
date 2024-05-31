@@ -6,8 +6,9 @@ module recrd::profile_test {
     use sui::test_scenario::{Self as ts, Scenario};
 
     use recrd::core::{Self};
-    use recrd::profile::{Self, Profile, Identity, EAccessLevelOutOfRange, ENewValueShouldBeHigher, ENotAuthorized};
+    use recrd::profile::{Self, Profile, ENewValueShouldBeHigher, ENotAuthorized};
     use recrd::master::{Video};
+    use recrd::identity::{Identity};
     use recrd::master_test;
 
     // === Constants ===
@@ -82,9 +83,6 @@ module recrd::profile_test {
         ts::end(scenario);
     }
 
-    // @TODO: For max testing coverage (even though I am pretty sure the actual coverage
-    // tool doesn't check possible values in the numbers range), 
-    // should we also check that the admin can successfully be assigned the REMOVE_ACCESS?
     #[test]
     public fun admin_authorizes_address() {
         let mut scenario = ts::begin(ADMIN);
@@ -104,55 +102,6 @@ module recrd::profile_test {
 
         ts::end(scenario);
     }
-
-    #[test]
-    public fun admin_receives() {
-        let mut scenario = ts::begin(ADMIN);
-
-        create_profile(&mut scenario);
-
-        // --- Authorize admin to receive ---
-        ts::next_tx(&mut scenario, ADMIN);
-        {
-            let mut profile = ts::take_shared<Profile>(&scenario);
-            authorize_user(&mut scenario, &mut profile, ADMIN, 1);
-            ts::return_shared(profile);
-        };
-
-        // --- Create a master and send it to the profile ---
-        // let master_id;
-        ts::next_tx(&mut scenario, ADMIN);
-        {
-            let master = master_test::mint_master<Video>(
-                &mut scenario,
-                utf8(b"Test Video Master"),
-                option::none<ID>(),
-                option::none<ID>()
-            );
-
-            // master_id = object::id(&master);
-            let profile = ts::take_shared<Profile>(&scenario);
-            transfer::public_transfer(master, object::id_address(&profile));
-            ts::return_shared(profile);
-        };
-
-        // --- Admin receives the master & burns it ---
-        // @TODO: add in the TS integration tests, receiving can not be tested in Move yet (ref: https://mysten-labs.slack.com/archives/C04J99F4B2L/p1702672648821549?thread_ts=1702652736.041159&cid=C04J99F4B2L)
-        // ts::next_tx(test, ADMIN);
-        // {
-        //     let ctx = ts::ctx(test);
-        //     let profile = ts::take_shared<Profile>(test);
-        //     let receiving_arg = Receiving<Master<Video>> {
-        //         id: master_id,
-        //         version: 0
-        //     };
-        //     let master = profile::receive_master<Master<Video>>(&mut profile, receiving_arg, ctx);
-        // };
-
-        ts::end(scenario);
-    }
-
-    // @TODO: same is true as above for borrow_master, return_master & buy. To be added as TS integration tests
 
     #[test]
     public fun admin_updates_profile_fields() {
@@ -195,25 +144,6 @@ module recrd::profile_test {
     }
 
     // === Expected failures ===
-    #[test]
-    #[expected_failure(abort_code = EAccessLevelOutOfRange)]
-    public fun admin_authorizes_address_with_invalid_u8(){
-        let mut scenario = ts::begin(ADMIN);
-        let test = &mut scenario;
-
-        create_profile(test);
-
-        // --- Authorize user with an invalid role ---
-        ts::next_tx(test, ADMIN);
-        {
-            let mut profile = ts::take_shared<Profile>(test);
-            authorize_user(test, &mut profile, USER_PROFILE, 0);
-            ts::return_shared(profile);
-        };
-
-        ts::end(scenario);
-    }
-
     #[test]
     #[expected_failure(abort_code = ENewValueShouldBeHigher)]
     public fun updates_watch_time_with_invalid_value() {

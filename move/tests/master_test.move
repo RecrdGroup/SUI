@@ -10,6 +10,8 @@ module recrd::master_test {
     use sui::vec_map::{Self};
 
     use recrd::core::{Self};
+    use recrd::identity;
+    use recrd::profile::{Self, Profile};
     use recrd::master::{
         Self, 
         Master, 
@@ -20,7 +22,9 @@ module recrd::master_test {
         EInvalidNewRevenueTotal, 
         EInvalidNewRevenuePaid, 
         ESuspendedItemCannotBeListed,
-        ESuspendedItemCannotBeRetained
+        ESuspendedItemCannotBeRetained,
+        EInvalidMetadataForMaster,
+        ECanOnlyRetainSuspendedItem
     };
 
     // === Constants ===
@@ -32,6 +36,8 @@ module recrd::master_test {
     const USER_ROYALTY_BP: u16 = 1_000;
     const RETAINED: u8 = 1;
     const ON_SALE: u8 = 2;
+    const USERNAME: vector<u8> = b"username";
+    const USER_ID: vector<u8> = b"user_id";
 
     // === Errors ===
     const EInvalidMasterValue: u64 = 1001;
@@ -349,6 +355,27 @@ module recrd::master_test {
             option::some<ID>(object::id_from_address(ORIGIN_REF))
         );
 
+        // Create Profile for user
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            profile::new(
+                &admin_cap, 
+                utf8(USER_ID), 
+                utf8(USERNAME), 
+                USER,
+                ts::ctx(&mut scenario)
+            );
+        };
+
+        // Create an Identity and transfer to user
+        ts::next_tx(&mut scenario, USER);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let identity = identity::create_for_testing(object::id(&profile), ts::ctx(&mut scenario));
+            identity::transfer(identity, USER);
+            ts::return_shared(profile);
+        };
+
         ts::next_tx(&mut scenario, ADMIN);
         let metadata = ts::take_shared<Metadata<Video>>(&scenario);
 
@@ -357,7 +384,6 @@ module recrd::master_test {
         {
             master::sync_title(&mut master, &metadata);
             master::sync_image_url(&mut master, &metadata);
-            master::list(&mut master);
         };
 
         // Validate Updated Master fields
@@ -375,13 +401,9 @@ module recrd::master_test {
                 master::media_url(&master) == master::meta_media_url(&metadata), 
                 EInvalidMasterValue
             );
-            assert!(
-                master::sale_status(&master) == ON_SALE, 
-                EInvalidMasterValue
-            );
         };
 
-        ts::next_tx(&mut scenario, ADMIN);
+        ts::next_tx(&mut scenario, USER);
         {
             master::unlist(&mut master);
         };
@@ -415,10 +437,10 @@ module recrd::master_test {
         {
             let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
             
-            master::set_title(&mut metadata, utf8(b"Updated Title"));
-            master::set_description(&mut metadata, utf8(b"Updated Description"));
+            master::set_title(&master, &mut metadata, utf8(b"Updated Title"));
+            master::set_description(&master, &mut metadata, utf8(b"Updated Description"));
             master::set_hashtags(&admin_cap, &mut metadata, vector[utf8(b"updated"), utf8(b"master")]);
-            master::set_image_url(&mut metadata, utf8(b"image-url.com"));
+            master::set_image_url(&master, &mut metadata, utf8(b"image-url.com"));
             master::set_media_url(&admin_cap, &mut metadata, utf8(b"media-url.com"));
             master::set_royalty_percentage_bp(&admin_cap, &mut metadata, 200);
             master::set_metadata_parent(&admin_cap, &mut metadata, option::none<ID>());
@@ -579,6 +601,41 @@ module recrd::master_test {
         ts::end(scenario);
     }
 
+    #[test]
+    public fun unsuspends_master() {
+        let mut scenario = ts::begin(ADMIN);
+        let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+
+        let mut master = mint_master<Video>(
+            &mut scenario,
+            utf8(b"Test Video Master"),
+            option::some<ID>(object::id_from_address(PARENT_REF)),
+            option::some<ID>(object::id_from_address(ORIGIN_REF))
+        );
+
+        ts::next_tx(&mut scenario, USER);
+        {
+            // Suspend master
+            master::suspend(&admin_cap, &mut master);
+        };
+
+        ts::next_tx(&mut scenario, USER);
+        {
+            // Unsuspend master
+            master::unsuspend(&admin_cap, &mut master);
+        };
+
+        // Validate Updated Sale Status
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            assert!(master::sale_status(&master) == RETAINED, EInvalidMasterValue);
+        };
+
+        master::burn_master(&admin_cap, master);
+        core::burn_admincap(admin_cap);
+        ts::end(scenario);
+    }
+
     // ~~~ Expected Failures ~~~
 
     #[test]
@@ -593,6 +650,27 @@ module recrd::master_test {
             option::some<ID>(object::id_from_address(PARENT_REF)),
             option::some<ID>(object::id_from_address(ORIGIN_REF))
         );
+
+        // Create Profile for user
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            profile::new(
+                &admin_cap, 
+                utf8(USER_ID), 
+                utf8(USERNAME), 
+                USER,
+                ts::ctx(&mut scenario)
+            );
+        };
+
+        // Create an Identity and transfer to user
+        ts::next_tx(&mut scenario, USER);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let identity = identity::create_for_testing(object::id(&profile), ts::ctx(&mut scenario));
+            identity::transfer(identity, USER);
+            ts::return_shared(profile);
+        };
 
         ts::next_tx(&mut scenario, USER);
         {
@@ -624,6 +702,27 @@ module recrd::master_test {
             option::some<ID>(object::id_from_address(ORIGIN_REF))
         );
 
+        // Create Profile for user
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            profile::new(
+                &admin_cap, 
+                utf8(USER_ID), 
+                utf8(USERNAME), 
+                USER,
+                ts::ctx(&mut scenario)
+            );
+        };
+
+        // Create an Identity and transfer to user
+        ts::next_tx(&mut scenario, USER);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let identity = identity::create_for_testing(object::id(&profile), ts::ctx(&mut scenario));
+            identity::transfer(identity, USER);
+            ts::return_shared(profile);
+        };
+
         ts::next_tx(&mut scenario, USER);
         {
             // Suspend master
@@ -634,6 +733,30 @@ module recrd::master_test {
         {
             // User tries to list for sale
             master::unlist(&mut master);
+        };
+
+        master::burn_master(&admin_cap, master);
+        core::burn_admincap(admin_cap);
+        ts::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = ECanOnlyRetainSuspendedItem)]
+    public fun aborts_on_unsuspending_non_suspended_master() {
+        let mut scenario = ts::begin(ADMIN);
+        let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+
+        let mut master = mint_master<Video>(
+            &mut scenario,
+            utf8(b"Test Video Master"),
+            option::some<ID>(object::id_from_address(PARENT_REF)),
+            option::some<ID>(object::id_from_address(ORIGIN_REF))
+        );
+
+        ts::next_tx(&mut scenario, USER);
+        {
+            // Admin tries to unsuspend master
+            master::unsuspend(&admin_cap, &mut master);
         };
 
         master::burn_master(&admin_cap, master);
@@ -734,6 +857,56 @@ module recrd::master_test {
         core::burn_admincap(admin_cap);
         ts::end(scenario);
     }
+
+    #[test]
+    #[expected_failure(abort_code = EInvalidMetadataForMaster)]
+    public fun aborts_on_metadata_master_miss_match_when_syncing() {
+        let mut scenario = ts::begin(ADMIN);
+        let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+
+        let mut master = mint_master<Video>(
+            &mut scenario,
+            utf8(b"Test Video Master"),
+            option::some<ID>(object::id_from_address(PARENT_REF)),
+            option::some<ID>(object::id_from_address(ORIGIN_REF))
+        );
+
+        ts::next_tx(&mut scenario, ADMIN);
+        let mut metadata = ts::take_shared<Metadata<Video>>(&scenario);
+
+
+        // Update Metadata
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            master::set_title<Video>(&master, &mut metadata, utf8(b"A New title"));
+        };
+
+        let _impostor_master = mint_master<Video>(
+            &mut scenario,
+            utf8(b"Test Video Master but different"),
+            option::some<ID>(object::id_from_address(PARENT_REF)),
+            option::some<ID>(object::id_from_address(ORIGIN_REF))
+        );
+
+        ts::next_tx(&mut scenario, ADMIN);
+        let impostor_metadata = ts::take_shared<Metadata<Video>>(&scenario);
+
+
+        // Sync Master with the wrong metadata
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            master::sync_title(&mut master, &impostor_metadata);
+        };
+
+
+        let _ = master::burn_master(&admin_cap, master);
+        let _ = master::burn_master(&admin_cap, _impostor_master);
+        core::burn_admincap(admin_cap);
+        ts::return_shared(metadata);
+        ts::return_shared(impostor_metadata);
+        ts::end(scenario);
+    }
+
 
     // === Helpers ===
 

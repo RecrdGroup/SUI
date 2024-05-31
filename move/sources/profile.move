@@ -17,20 +17,18 @@ module recrd::profile {
   use recrd::core::AdminCap;
   use recrd::master::{Master};
   use recrd::receipt::{Self, Receipt};
-
-  // === Custom Receivers ===
-  use fun new_cap_ as ID.new_cap_;
+  use recrd::identity;
 
   // === Errors ===
   const ENewValueShouldBeHigher: u64 = 0;
   const EInvalidSaleStatus: u64 = 1;
   const EInvalidAccessRights: u64 = 2;
   const EInvalidObject: u64 = 3;
-  const EAccessLevelOutOfRange: u64 = 4;
-  const ENotAuthorized: u64 = 5;
-  const EAccessLevelOutOfBounds: u64 = 6;
-  const EMasterNotOnSale: u64 = 7;
-  const EUpdateNotAuthorized: u64 = 8;
+  const ENotAuthorized: u64 = 4;
+  const EAccessLevelOutOfBounds: u64 = 5;
+  const EMasterReceiptNotClaimed: u64 = 6;
+  const EUpdateNotAuthorized: u64 = 7;
+  const EBorrowNotAllowed: u64 = 8;
 
   // === Constants ===
 
@@ -53,6 +51,9 @@ module recrd::profile {
   const ON_SALE: u8 = 2;
   // Admin enforced state when rules are not met
   const SUSPENDED: u8 = 3;
+  // Claimed means a Receipt has been issued for master and
+  // it's in the process of being bought
+  const CLAIMED: u8 = 4;
 
   // === Structs ===
 
@@ -70,11 +71,11 @@ module recrd::profile {
     // type pending to decide the hashing approach
     username: String,
     // Keep a record of each user's address + RECRD address
-	  // in the format of a pair <address, Access Level [0,250]>
+	  // in the format of a pair <address, Access Level [0,255]>
     authorizations: Table<address, u8>,
     // total time the user has spent on watching videos
     watch_time: u64, // in seconds
-    // (TBD) dynamic fields for every video watched
+    // Number of videos watched
     videos_watched: u64,
 	  // Number of adverts seen
 	  adverts_watched: u64,
@@ -86,12 +87,6 @@ module recrd::profile {
   	ad_revenue: u64,
     // Total commission revenue earned
 	  commission_revenue: u64
-  }
-
-  // Profile identity for users to link their account to their Profile. 
-  public struct Identity has key {
-    id: UID,
-    profile: ID,
   }
 
   // === Public Functions ===
@@ -122,24 +117,14 @@ module recrd::profile {
     transfer::share_object(profile);
 
     // Give the user an Identity cap tied to their Profile.
-    let identity = profile_id.new_cap_(ctx);
-    transfer::transfer(identity, addr);
-  }
-
-  /// Admin can send more Identitys to users that have existing Profile. 
-  public fun new_cap(
-    _: &AdminCap, profile: &Profile, ctx: &mut TxContext
-  ): Identity {
-    profile.id.to_inner().new_cap_(ctx)
+    let identity = identity::new(profile_id, ctx);
+    identity::transfer(identity, addr);
   }
 
   /// Admin authorizes user with level of access to the profile.
   public fun authorize(
     _: &AdminCap, self: &mut Profile, addr: address, access: u8
   ) {
-    // Users access level should be in the range of (0, 200)
-    assert!(access > 0 && access <= 250, EAccessLevelOutOfRange);
-    
     self.authorizations.add(addr, access);
   }
 
@@ -150,30 +135,28 @@ module recrd::profile {
     self.authorizations.remove(user);
   }
 
-  /// Admin can receive any `T` object from `Profile`.
-  public fun admin_receive<T: key + store>(
-    _:&AdminCap, self: &mut Profile, object: Receiving<T>
-  ): T {
-    transfer::public_receive<T>(&mut self.id, object)
+  /// Admin can receive `Master<T>` from a profile.
+  public fun admin_receive_master<T: drop>(
+    _:&AdminCap, self: &mut Profile, master: Receiving<Master<T>>
+  ): Master<T> {
+    self.receive_master_<T>(master)
   }
 
   /// Borrows Master<T> temporarily with a Promise to return it back. 
   public fun borrow_master<T: drop>(
     self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): (Master<T>, Promise) {
-    // Check whether sender exists in authorization table. 
-    assert!(
-      self.authorizations.contains(ctx.sender()),
-      ENotAuthorized
-    );
-
     // Users that have access above the BORROW_ACCESS threshold can borrow the master
-    assert!(
-      *self.authorizations.borrow(ctx.sender()) >= BORROW_ACCESS,
-      EInvalidAccessRights
-    );
+    assert!(*self.access_rights(ctx.sender()) >= BORROW_ACCESS, EInvalidAccessRights);
 
     let master = self.receive_master_<T>(master);
+
+    // Cannot borrow during an active selling process where a Receipt has been issued
+    // or if master has been suspended for violation.
+    assert!(
+      master.sale_status<T>() != CLAIMED && master.sale_status<T>() != SUSPENDED, 
+      EBorrowNotAllowed
+    );
 
     let promise = Promise { 
       master_id: object::id(&master),
@@ -210,8 +193,8 @@ module recrd::profile {
     // Validate the master id from the receipt and the master object
     assert!(object::id(&master) == master_id, EInvalidObject);
 
-    // Only masters with ON_SALE status can be bought
-    assert!(master.sale_status<T>() == ON_SALE, EMasterNotOnSale);
+    // Only master with CLAIMED sale status can be bought
+    assert!(master.sale_status<T>() == CLAIMED, EMasterReceiptNotClaimed);
 
     // Update the sale status of the master object to RETAINED
     master.update_sale_status<T>(RETAINED);
@@ -230,9 +213,6 @@ module recrd::profile {
 
   // Authorized addresses can update username.
   public fun update_username(self: &mut Profile, new_username: String, ctx: &mut TxContext) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -243,9 +223,6 @@ module recrd::profile {
   public fun update_watch_time(
     self: &mut Profile, new_watch_time: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -259,9 +236,6 @@ module recrd::profile {
   public fun update_videos_watched(
     self: &mut Profile, new_videos_watched: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -275,9 +249,6 @@ module recrd::profile {
   public fun update_adverts_watched(
     self: &mut Profile, new_adverts_watched: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -291,9 +262,6 @@ module recrd::profile {
   public fun update_number_of_followers( 
     self: &mut Profile, new_number_of_followers: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -304,9 +272,6 @@ module recrd::profile {
   public fun update_number_of_following(
     self: &mut Profile, new_number_of_following: u64, ctx: &mut TxContext
   ) {
-    // Only addresses in the authorizations table can update.
-    assert!(self.authorizations.contains(ctx.sender()), ENotAuthorized);
-
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(*self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -355,37 +320,37 @@ module recrd::profile {
     self.authorizations.borrow(user)
   }
 
-  // Updates the watch time for given profile.
+  // Returns the watch time for given profile.
   public fun watch_time(self: &Profile): &u64 {
     &self.watch_time
   }
 
-  // Updates the number of videos watched for given profile.
+  // Returns the number of videos watched for given profile.
   public fun videos_watched(self: &Profile): &u64 {
     &self.videos_watched
   }
 
-  // Updates the number of adverts watched for given profile.
+  // Returns the number of adverts watched for given profile.
   public fun adverts_watched(self: &Profile): &u64 {
     &self.adverts_watched
   }
   
-  // Updates the number of followers for given profile.
+  // Returns the number of followers for given profile.
   public fun number_of_followers(self: &Profile): &u64 {
     &self.number_of_followers
   }
 
-  // Updates the number users given profile is following.
+  // Returns the number users given profile is following.
   public fun number_of_following(self: &Profile): &u64 {
     &self.number_of_following
   }
 
-  // Updates the ad revenue for given profile.
+  // Returns the ad revenue for given profile.
   public fun ad_revenue(self: &Profile): &u64 {
     &self.ad_revenue
   }
   
-  // Updates the commission revenue for given profile.
+  // Returns the commission revenue for given profile.
   public fun commission_revenue(self: &Profile): &u64 {
     &self.commission_revenue
   }
@@ -399,19 +364,8 @@ module recrd::profile {
     transfer::public_receive<Master<T>>(&mut self.id, master_to_receive)
   }
 
-  /// Creates and returns a new Identity object. 
-  fun new_cap_(profile_id: ID, ctx: &mut TxContext): Identity {
-    Identity {
-      id: object::new(ctx),
-      profile: profile_id,
-    }
-  }
-
   /// Updates the access level of given address in the `Profile` authorization table.
   fun update_authorization_(self: &mut Profile, addr: address, new_access: u8) {
-    // Make sure the new access level is within the allowed range. 
-    assert!(new_access >= 0 && new_access <= 250, EAccessLevelOutOfRange);
-
     // Check whether given address exists in authorization table. 
     assert!(self.authorizations.contains(addr), ENotAuthorized);
 

@@ -18,6 +18,14 @@ import { getSigner, getSuiAddress } from "../../utils";
       encoding: "utf-8",
     });
 
+    // Get the seller profile ID from temp file
+    const sellerProfileId = readFileSync(
+      join(__dirname, "..", "tempProfileId.txt"),
+      {
+        encoding: "utf-8",
+      }
+    );
+
     // Create a new Profile for the buyer
     const buyerProfileRes = await profileModule.new(
       "buyer12345",
@@ -29,13 +37,14 @@ import { getSigner, getSuiAddress } from "../../utils";
     // Write the buyer profile ID to a temp file
     writeFileSync(
       join(__dirname, "..", "tempBuyerProfileId.txt"),
-      buyerProfileRes.objectId
+      buyerProfileRes.profile.objectId
     );
 
     // Create a new Receipt
     const res = await receiptModule.newReceipt(
       masterId,
-      buyerProfileRes.objectId,
+      buyerProfileRes.profile.objectId,
+      sellerProfileId,
       getSigner(RECRD_PRIVATE_KEY)
     );
     console.log("Receipt created successfully:", res);

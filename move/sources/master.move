@@ -12,18 +12,23 @@ module recrd::master {
   use sui::package;
   use sui::display;
   use recrd::core::AdminCap;
-  
+
   // === Errors ===
   const EHashtagDoesNotExist: u64 = 1;
   const EInvalidNewRevenueTotal: u64 = 2;
   const EInvalidNewRevenuePaid: u64 = 3;
   const ESuspendedItemCannotBeListed: u64 = 4;
   const ESuspendedItemCannotBeRetained: u64 = 5;
+  const EInvalidMetadataForMaster: u64 = 6;
+  const EItemHasBeenClaimed: u64 = 7;
+  const ECanOnlyRetainSuspendedItem: u64 = 8;
+  const EUpdateNotAllowed: u64 = 9;
 
   // === Constants ===
   const RETAINED: u8 = 1;
   const ON_SALE: u8 = 2;
   const SUSPENDED: u8 = 3;
+  const CLAIMED: u8 = 4;
 
   // === Structs ===
 
@@ -47,7 +52,7 @@ module recrd::master {
     // Media file URL for master video or audio
     media_url: String,
     // sale status of master
-    sale_status: u8,
+    sale_status: u8
   }
 
   // Master metadata object that will hold all master-related metadata.
@@ -79,13 +84,13 @@ module recrd::master {
     // revenue total (synced by RECRD)
     revenue_total: u64,
     // revenue available to be paid to creator (synced by RECRD)
-    // TODO: clarify if this amount is to be paid to `creator_profile_id`
     revenue_available: u64, 
     // keep track of revenue paid out
-    // TODO: clarify if this amount refers to `creator_profile_id`
     revenue_paid: u64,
     // (optional) show how much revenue is pending for withdrawal
     revenue_pending: u64,
+    // whether master resides in RECRD ecosystem
+    master_exported: bool,
   }
 
   // One-time-function that runs when the contract is deployed.
@@ -95,10 +100,12 @@ module recrd::master {
 
     // Create the display for `Master<T>`
     let master_keys = vector[
-      utf8(b"Name"),
-      utf8(b"Image URL"),
-      utf8(b"Media URL"),
-      utf8(b"Metadata Ref"),
+      utf8(b"name"),
+      utf8(b"image_url"),
+      utf8(b"medial_url"),
+      utf8(b"metadata_ref"),
+      utf8(b"project_url"),
+      utf8(b"creator"),
     ];
 
     let master_values = vector[
@@ -106,6 +113,8 @@ module recrd::master {
       utf8(b"{image_url}"),
       utf8(b"{media_url}"),
       utf8(b"{metadata_ref}"),
+      utf8(b"https://www.recrd.com/"),
+      utf8(b"RECRD"),
     ];
 
     // Create and populate display for `Master<Video>`
@@ -124,15 +133,17 @@ module recrd::master {
 
     // Create the display for `Metadata<T>`
     let metadata_keys = vector[
-      utf8(b"Title"),
-      utf8(b"Description"),
-      utf8(b"Image URL"),
-      utf8(b"Media URL"),
-      utf8(b"Hashtags"),
-      utf8(b"Creator"),
-      utf8(b"Parent"),
-      utf8(b"Origin"),
-      utf8(b"Expressions"),
+      utf8(b"name"),
+      utf8(b"description"),
+      utf8(b"image_url"),
+      utf8(b"media_url"),
+      utf8(b"hashtags"),
+      utf8(b"creator_profile"),
+      utf8(b"parent"),
+      utf8(b"origin"),
+      utf8(b"expressions"),
+      utf8(b"project_url"),
+      utf8(b"creator"),
     ];
 
     let metadata_values = vector[
@@ -145,6 +156,8 @@ module recrd::master {
       utf8(b"{master_metadata_parent}"),
       utf8(b"{master_metadata_origin}"),
       utf8(b"{expressions}"),
+      utf8(b"https://www.recrd.com/"),
+      utf8(b"RECRD"),
     ];
 
     // Create and populate display for `Metadata<Video>`
@@ -220,6 +233,7 @@ module recrd::master {
       revenue_available,
       revenue_paid,
       revenue_pending,
+      master_exported: false
     };
 
     // Publicly share the metadata object. 
@@ -232,7 +246,7 @@ module recrd::master {
       title,
       image_url,
       media_url,
-      sale_status,
+      sale_status
     }
   }
 
@@ -246,7 +260,7 @@ module recrd::master {
       title: _,
       image_url: _,
       media_url: _,
-      sale_status: _,
+      sale_status: _
     } = master;
 
     // Delete the `Master<T>` object and its UID.
@@ -275,12 +289,25 @@ module recrd::master {
       revenue_available: _,
       revenue_paid: _,
       revenue_pending: _,
+      master_exported: _
     } = metadata;
 
     // Delete the `Metadata<T>` object and its UID.
     id.delete()
   }
   
+  /// Admin can update the `exported` field in case the `Master` is moved from
+  /// a `Profile` to a user address.
+  public fun export<T>(_: &AdminCap, metadata: &mut Metadata<T>) {
+    metadata.master_exported = true;
+  }
+
+  /// Update the `exported` field when a `Master` is being brought back into 
+  /// the RECRD ecosystem under a `Profile`.
+  public fun import<T>(_: &AdminCap, metadata: &mut Metadata<T>) {
+    metadata.master_exported = false;
+  }
+
   // === Master Accessors ===
 
   public fun metadata_ref<T>(master: &Master<T>): &ID {
@@ -384,37 +411,61 @@ module recrd::master {
 
   // Sync Master title with the title in Metadata.
   public fun sync_title<T>(master: &mut Master<T>, metadata: &Metadata<T>) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     master.title = metadata.title;
   }
 
   // Sync Master image URL with the image URL in Metadata.
   public fun sync_image_url<T>(master: &mut Master<T>, metadata: &Metadata<T>) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     master.image_url = metadata.image_url;
   }
 
   // Sync Master media URL with the media URL in Metadata.
   public fun sync_media_url<T>(master: &mut Master<T>, metadata: &Metadata<T>) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
     master.media_url = metadata.media_url;
   }
 
   // Lists Master for sale by setting status to ON_SALE. 
+  // This allows a Receipt to be issued for a Master.
   public fun list<T>(master: &mut Master<T>) {
     // Masters that are SUSPENDED cannot be set for sale. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeListed);
 
+    // Don't allow status update if a Receipt has been issued for master.
+    // Once a Receipt is minted, the sale_status is set to CLAIMED.
+    assert!(master.sale_status != CLAIMED, EItemHasBeenClaimed);
+
     master.sale_status = ON_SALE;
   }
 
-  // Unlists Master from market by reverting status to RETAINED. 
+  // Unlists Master from market by reverting status to RETAINED.
   public fun unlist<T>(master: &mut Master<T>) {
-    // Masters that are SUSPENDED cannot be set reverted to retained. 
+    // Masters that are SUSPENDED cannot revert status to retained. 
     assert!(master.sale_status != SUSPENDED, ESuspendedItemCannotBeRetained);
+
+    // Don't allow status update if a Receipt has been issued for master.
+    assert!(master.sale_status != CLAIMED, EItemHasBeenClaimed);
+
     master.sale_status = RETAINED;
   }
 
   // Admin can suspend a Master for violation.
   public fun suspend<T>(_: &AdminCap, master: &mut Master<T>) {
-    master.sale_status = SUSPENDED
+    master.sale_status = SUSPENDED;
+  }
+
+  // Admin can unsuspend a Master that was previously suspended.
+  public fun unsuspend<T>(_: &AdminCap, master: &mut Master<T>) {
+    assert!(master.sale_status == SUSPENDED, ECanOnlyRetainSuspendedItem);
+    master.sale_status = RETAINED;
+  }
+
+  // Internal status to avoid updating of Master while it's in the process of being
+  // bought by a user that already has a `Receipt` for this Master.
+  public(package) fun claim<T>(master: &mut Master<T>) {
+    master.sale_status = CLAIMED;
   }
 
   // Modules can update the sale status internally.
@@ -424,18 +475,36 @@ module recrd::master {
 
   // === Metadata Setters ===
 
-  // Updates the title for given Metadata.
-  public fun set_title<T>(metadata: &mut Metadata<T>, title: String) {
+  // Users that have (at least) BORROW access to Master can update the title 
+  // for given Metadata.
+  public fun set_title<T>(
+    master: &Master<T>, metadata: &mut Metadata<T>, title: String
+  ) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
+    // Only allow update when Master is in RECRD ecosystem.
+    assert!(metadata.master_exported == false, EUpdateNotAllowed);
     metadata.title = title;
   }
 
-  // Updates the description for given Metadata.
-  public fun set_description<T>(metadata: &mut Metadata<T>, description: String) {
+  // Users that have (at least) BORROW access to Master can update the description  
+  // for given Metadata.
+  public fun set_description<T>(
+    master: &Master<T>, metadata: &mut Metadata<T>, description: String
+  ) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
+    // Only allow update when Master is in RECRD ecosystem.
+    assert!(metadata.master_exported == false, EUpdateNotAllowed);
     metadata.description = description;
   }
 
-  // Updates the image URL for given Metadata.
-  public fun set_image_url<T>(metadata: &mut Metadata<T>, image_url: String) {
+  // Users that have (at least) BORROW access to Master can update the image URL 
+  // for given Metadata.
+  public fun set_image_url<T>(
+    master: &Master<T>, metadata: &mut Metadata<T>, image_url: String
+  ) {
+    assert!(object::id(master) == metadata.master_id, EInvalidMetadataForMaster);
+    // Only allow update when Master is in RECRD ecosystem.
+    assert!(metadata.master_exported == false, EUpdateNotAllowed);
     metadata.image_url = image_url;
   }
   

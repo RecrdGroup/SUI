@@ -1,7 +1,7 @@
 // Copyright (c) Mysten Labs, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { USER_PRIVATE_KEY } from "../../config";
+import { RECRD_PRIVATE_KEY } from "../../config";
 import { MasterModule } from "../../modules/MasterModule";
 import { readFileSync } from "fs";
 import { join } from "path";
@@ -21,14 +21,14 @@ import { getSigner } from "../../utils";
       encoding: "utf-8",
     });
 
-    // Listing a master for sale can only be performed by the user.
-    const res = await masterModule.listMaster(
+    // Admin restricted operation.
+    const res = await masterModule.unsuspendMaster(
       profileId,
       masterId,
-      getSigner(USER_PRIVATE_KEY)
+      getSigner(RECRD_PRIVATE_KEY)
     );
     console.log("Master status updated successfully:", res);
   } catch (error) {
-    console.error("Failed to list Master for sale:", error);
+    console.error("Failed to retain Master:", error);
   }
 })();
