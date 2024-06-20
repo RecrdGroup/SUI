@@ -23,12 +23,13 @@ fi
 
 PRIVATE_KEY=$(cat ~/.sui/sui_config/sui.keystore | jq -r '.[0]')
 
-publish_res=$(sui client publish --skip-fetch-latest-git-deps --gas-budget 2000000000 --json ${MOVE_PACKAGE_PATH})
+publish_res=$(sui client publish --skip-fetch-latest-git-deps --gas-budget 200000000 --json ${MOVE_PACKAGE_PATH} --skip-dependency-verification)
 
-echo ${publish_res} >.publish.res.json
-
+echo ${publish_res} >.publish.res2.json
+echo $publish_res
 # Check if the command succeeded (exit status 0)
 if [[ "$publish_res" =~ "error" ]]; then
+  echo $publish_res
   # If yes, print the error message and exit the script
   echo "Error during move contract publishing.  Details : $publish_res"
   exit 1
@@ -36,7 +37,7 @@ fi
 
 publishedObjs=$(echo "$publish_res" | jq -r '.objectChanges[] | select(.type == "published")')
 DIGEST=$(echo "$publish_res" | jq -r '.digest')
-PACKAGE_ID=$(echo "$publishedObjs" | jq -r '.packageId')
+PACKAGE_ID=$(echo "$publishedObjs``" | jq -r '.packageId')
 
 newObjs=$(echo "$publish_res" | jq -r '.objectChanges[] | select(.type == "created")')
 
