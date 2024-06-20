@@ -56,10 +56,12 @@ module recrd::master_test {
         ts::next_tx(&mut scenario, ADMIN);
         {
             let master_keys = vector[
-                utf8(b"Name"),
-                utf8(b"Image URL"),
-                utf8(b"Media URL"),
-                utf8(b"Metadata Ref"),
+                utf8(b"name"),
+                utf8(b"image_url"),
+                utf8(b"medial_url"),
+                utf8(b"metadata_ref"),
+                utf8(b"project_url"),
+                utf8(b"creator"),
             ];
 
             let master_values = vector[
@@ -67,6 +69,8 @@ module recrd::master_test {
                 utf8(b"{image_url}"),
                 utf8(b"{media_url}"),
                 utf8(b"{metadata_ref}"),
+                utf8(b"https://www.recrd.com/"),
+                utf8(b"RECRD"),
             ];
 
             let master_display = ts::take_from_sender<Display<Master<Video>>>(&scenario);
@@ -82,15 +86,17 @@ module recrd::master_test {
         ts::next_tx(&mut scenario, ADMIN);
         {
             let metadata_keys = vector[
-                utf8(b"Title"),
-                utf8(b"Description"),
-                utf8(b"Image URL"),
-                utf8(b"Media URL"),
-                utf8(b"Hashtags"),
-                utf8(b"Creator"),
-                utf8(b"Parent"),
-                utf8(b"Origin"),
-                utf8(b"Expressions"),
+                utf8(b"name"),
+                utf8(b"description"),
+                utf8(b"image_url"),
+                utf8(b"media_url"),
+                utf8(b"hashtags"),
+                utf8(b"creator_profile"),
+                utf8(b"parent"),
+                utf8(b"origin"),
+                utf8(b"expressions"),
+                utf8(b"project_url"),
+                utf8(b"creator"),
             ];
 
             let metadata_values = vector[
@@ -103,6 +109,8 @@ module recrd::master_test {
                 utf8(b"{master_metadata_parent}"),
                 utf8(b"{master_metadata_origin}"),
                 utf8(b"{expressions}"),
+                utf8(b"https://www.recrd.com/"),
+                utf8(b"RECRD"),
             ];
 
             let metadata_display = ts::take_from_sender<Display<Metadata<Video>>>(&scenario);

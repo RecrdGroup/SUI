@@ -7,9 +7,7 @@ module recrd::profile_test {
 
     use recrd::core::{Self};
     use recrd::profile::{Self, Profile, ENewValueShouldBeHigher, ENotAuthorized};
-    use recrd::master::{Video};
     use recrd::identity::{Identity};
-    use recrd::master_test;
 
     // === Constants ===
     const USERNAME: vector<u8> = b"username";
