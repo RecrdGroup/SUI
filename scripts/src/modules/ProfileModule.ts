@@ -36,27 +36,64 @@ const errorCodeMessages = {
 export class ProfileModule {
   /// Create and share a profile
   async new(
-    userId: string,
-    username: string,
-    userAddress: string,
+    userId: string | string[],
+    username: string | string[],
+    // userAddress: string | string[],
     signer: Signer
   ): Promise<{
-    profile: SuiObjectChangeCreated;
-    identity: SuiObjectChangeCreated;
+    profile: SuiObjectChangeCreated[];
+    // identity: SuiObjectChangeCreated[];
   }> {
+    // If we are given an array for multiple users, we batch them.
+    // But first we make sure the arrays are of the same length
+    const isUserIdArray = Array.isArray(userId);
+    const isUsernameArray = Array.isArray(username);
+    // const isUserAddressArray = Array.isArray(userAddress);
+    if (
+      isUserIdArray &&
+      isUsernameArray
+      // && isUserAddressArray
+    ) {
+      if (
+        userId.length !== username.length
+        // || userId.length !== userAddress.length
+      ) {
+        throw new Error(
+          "The arrays for userId, username, and userAddress must be of the same length."
+        );
+      }
+    }
+    // we also need to make sure that all are arrays if one of them is
+    if (
+      isUserIdArray ||
+      isUsernameArray
+      // || isUserAddressArray
+    ) {
+      if (
+        !isUserIdArray ||
+        !isUsernameArray
+        //  || !isUserAddressArray
+      ) {
+        throw new Error(
+          "If one of userId, username, and userAddress are provided as arrays, all must be arrays."
+        );
+      }
+    }
     // Create a transaction block
     const txb = new TransactionBlock();
 
-    // Call the smart contract function to create a profile and the user identity
-    txb.moveCall({
-      target: `${PACKAGE_ID}::profile::new`,
-      arguments: [
-        txb.object(ADMIN_CAP),
-        txb.pure(userId),
-        txb.pure(username),
-        txb.pure(userAddress),
-      ],
-    });
+    for (let i = 0; i < (isUserIdArray ? userId.length : 1); i++) {
+      // Call the smart contract function to create a profile and the user identity
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::new`,
+        arguments: [
+          txb.object(ADMIN_CAP),
+          txb.pure(isUserIdArray ? userId[i] : userId),
+          txb.pure(isUsernameArray ? username[i] : username),
+          // txb.pure(isUserAddressArray ? userAddress[i] : userAddress),
+        ],
+      });
+    }
 
     // Sign and execute the transaction as RECRD
     const response = await executeTransaction({ txb, signer });
@@ -68,12 +105,12 @@ export class ProfileModule {
       );
     }
 
-    const profileRes = response.objectChanges?.find((object) => {
+    const profileRes = response.objectChanges?.filter((object) => {
       return (
         object.type === "created" &&
         object.objectType.startsWith(`${PACKAGE_ID}::profile::Profile`)
       );
-    }) as SuiObjectChangeCreated & {
+    }) as SuiObjectChangeCreated[] & {
       owner: {
         Shared: {
           /** The version at which the object became shared */
@@ -82,16 +119,16 @@ export class ProfileModule {
       };
     };
 
-    const identityRes = response.objectChanges?.find((object) => {
-      return (
-        object.type === "created" &&
-        object.objectType.startsWith(`${PACKAGE_ID}::identity::Identity`)
-      );
-    }) as SuiObjectChangeCreated;
+    // const identityRes = response.objectChanges?.filter((object) => {
+    //   return (
+    //     object.type === "created" &&
+    //     object.objectType.startsWith(`${PACKAGE_ID}::identity::Identity`)
+    //   );
+    // }) as SuiObjectChangeCreated[];
 
     return {
       profile: profileRes,
-      identity: identityRes,
+      // identity: identityRes,
     };
   }
 
@@ -140,11 +177,7 @@ export class ProfileModule {
     } else {
       txb.moveCall({
         target: `${PACKAGE_ID}::profile::${updateFunctionName}`,
-        arguments: [
-          txb.object(ADMIN_CAP),
-          txb.object(profileId),
-          txb.pure(newValue),
-        ],
+        arguments: [txb.object(profileId), txb.pure(newValue)],
       });
     }
 
@@ -234,34 +267,132 @@ export class ProfileModule {
 
   /// Authorize a user to access a profile with level of access within [0, 250]
   async authorizeUser(
-    profileId: string,
-    user: string,
-    accessLevel: number,
+    profileId: string | string[],
+    user: string | string[],
+    accessLevel: number | number[],
     signer: Signer
-  ): Promise<Profile> {
-    if (accessLevel < 0 || accessLevel > 250) {
-      throw new Error("Invalid access level specified.");
+  ): Promise<boolean> {
+    // First we make sure the arrays are of the same length
+    const isProfileIdArray = Array.isArray(profileId);
+    const isUserArray = Array.isArray(user);
+    const isAccessLevelArray = Array.isArray(accessLevel);
+
+    if (isProfileIdArray && isUserArray && isAccessLevelArray) {
+      if (
+        profileId.length !== user.length ||
+        profileId.length !== accessLevel.length
+      ) {
+        throw new Error(
+          "The arrays for profileId, user, and accessLevel must be of the same length."
+        );
+      }
+    }
+    // we also need to make sure that all are arrays if one of them is
+    if (isProfileIdArray || isUserArray || isAccessLevelArray) {
+      if (!isProfileIdArray || !isUserArray || !isAccessLevelArray) {
+        throw new Error(
+          "If one of profileId, user, and accessLevel are provided as arrays, all must be arrays."
+        );
+      }
     }
 
     // Create a transaction block
     const txb = new TransactionBlock();
 
-    // Call the smart contract function to authorize a user
-    txb.moveCall({
-      target: `${PACKAGE_ID}::profile::authorize`,
-      arguments: [
-        txb.object(ADMIN_CAP),
-        txb.object(profileId),
-        txb.pure(user),
-        txb.pure(accessLevel),
-      ],
-    });
+    for (let i = 0; i < (isProfileIdArray ? profileId.length : 1); i++) {
+      // If we are given an array for multiple profiles, we batch them.
+      // Call the smart contract function to authorize a user
+
+      const curAccessLevel = isAccessLevelArray ? accessLevel[i] : accessLevel;
+      if (curAccessLevel < 0 || curAccessLevel > 250) {
+        throw new Error("Invalid access level specified.");
+      }
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::authorize`,
+        arguments: [
+          txb.object(ADMIN_CAP),
+          txb.object(isProfileIdArray ? profileId[i] : profileId),
+          txb.pure(isUserArray ? user[i] : user),
+          txb.pure(curAccessLevel),
+        ],
+      });
+    }
 
     // Sign and execute the transaction
     const response = await executeTransaction({ txb, signer });
 
+    if (response.effects?.status?.status === "failure") {
+      console.error(
+        "Error in authorizing user: ",
+        response.effects.status.error
+      );
+    }
+
     // Return updated profile
-    return this.getProfileById(profileId);
+    return response.effects?.status?.status === "success";
+  }
+
+  async batchCombo(
+    userId: string[],
+    username: string[],
+    profileId: string[],
+    authorizationAddress: string[],
+    accessLevel: number[],
+    signer: Signer
+  ) {
+    // Make sure userId, username, userAddress are of the same length
+    if (userId.length !== username.length) {
+      throw new Error(
+        "The arrays for userId, username, and userAddress must be of the same length."
+      );
+    }
+    // Make sure profileId, authorizationAddress and accessLevel are of the same length
+    if (
+      profileId.length !== authorizationAddress.length ||
+      profileId.length !== accessLevel.length
+    ) {
+      throw new Error(
+        "The arrays for profileId, authorizationAddress, and accessLevel must be of the same length."
+      );
+    }
+
+    // Create a transaction block
+    const txb = new TransactionBlock();
+
+    for (let i = 0; i < userId.length; i++) {
+      // Call the smart contract function to create a profile and the user identity
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::new`,
+        arguments: [
+          txb.object(ADMIN_CAP),
+          txb.pure(userId[i]),
+          txb.pure(username[i]),
+        ],
+      });
+    }
+
+    for (let i = 0; i < profileId.length; i++) {
+      // Call the smart contract function to authorize a user
+      txb.moveCall({
+        target: `${PACKAGE_ID}::profile::authorize`,
+        arguments: [
+          txb.object(ADMIN_CAP),
+          txb.object(profileId[i]),
+          txb.pure(authorizationAddress[i]),
+          txb.pure(accessLevel[i]),
+        ],
+      });
+    }
+
+    // Sign and execute the transaction as RECRD
+    const response = await executeTransaction({ txb, signer });
+
+    // Check if the profiles were created
+    if (!response.effects?.created?.length) {
+      throw new Error("Batch combo failed or did not return expected result.");
+    }
+
+    return response;
   }
 
   /// Deauthorize a user from accessing a profile
