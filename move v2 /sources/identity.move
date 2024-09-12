@@ -24,6 +24,12 @@ module recrd::identity {
     self.transfer(addr);
   }
 
+  /// Functionality to delete an Identity object.
+  public fun delete(self: Identity) {
+    let Identity {id, profile: _} = self;
+    id.delete();
+  }
+
   // === Private Functions ===
 
   // Internal transfer function for `Identity`.

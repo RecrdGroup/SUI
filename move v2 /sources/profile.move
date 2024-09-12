@@ -121,6 +121,27 @@ module recrd::profile {
     identity::transfer(identity, addr);
   }
 
+  /// Admin can delete a `Profile` object.
+  /// Caution: Admin needs to have removed all authorizations prior to deleting the profile.
+  public fun delete(_: &AdminCap, self: Profile) {
+    let Profile {
+      id,
+      user_id: _,
+      username: _,
+      authorizations,
+      watch_time: _, // initial watch time is zero
+      videos_watched: _,
+      adverts_watched: _,
+      number_of_followers: _,
+      number_of_following: _,
+      ad_revenue: _,
+      commission_revenue: _,
+    } = self;
+
+    authorizations.destroy_empty();
+    id.delete();
+  }
+
   /// Admin authorizes user with level of access to the profile.
   public fun authorize(
     _: &AdminCap, self: &mut Profile, addr: address, access: u8
