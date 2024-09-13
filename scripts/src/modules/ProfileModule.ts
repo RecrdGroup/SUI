@@ -7,7 +7,7 @@ import {
 } from "@mysten/sui.js/client";
 import { TransactionBlock } from "@mysten/sui.js/transactions";
 import { executeTransaction, getMasterT } from "../utils";
-import { PACKAGE_ID, ADMIN_CAP, suiClient } from "../config";
+import { PACKAGE_ID, ADMIN_CAP, suiClient, PACKAGE_ID_V2 } from "../config";
 import { Profile, AuthorizationDynamicFieldContent } from "../interfaces";
 import { Signer } from "@mysten/sui.js/cryptography";
 
@@ -38,60 +38,60 @@ export class ProfileModule {
   async new(
     userId: string | string[],
     username: string | string[],
-    // userAddress: string | string[],
-    signer: Signer
+    signer: Signer,
+    userAddress?: string | string[] // optional, first published version uses this
   ): Promise<{
     profile: SuiObjectChangeCreated[];
-    // identity: SuiObjectChangeCreated[];
+    identity: SuiObjectChangeCreated[];
   }> {
     // If we are given an array for multiple users, we batch them.
     // But first we make sure the arrays are of the same length
     const isUserIdArray = Array.isArray(userId);
     const isUsernameArray = Array.isArray(username);
-    // const isUserAddressArray = Array.isArray(userAddress);
-    if (
-      isUserIdArray &&
-      isUsernameArray
-      // && isUserAddressArray
-    ) {
-      if (
-        userId.length !== username.length
-        // || userId.length !== userAddress.length
-      ) {
-        throw new Error(
-          "The arrays for userId, username, and userAddress must be of the same length."
-        );
+
+    const isV1 = userAddress !== undefined;
+    const isUserAddressArray = Array.isArray(userAddress);
+    if (isUserIdArray && isUsernameArray) {
+      if (userId.length !== username.length) {
+        if (
+          isV1 &&
+          isUserAddressArray &&
+          userId.length !== userAddress.length
+        ) {
+          throw new Error(
+            "The arrays for userId, username, and userAddress must be of the same length."
+          );
+        }
       }
     }
     // we also need to make sure that all are arrays if one of them is
-    if (
-      isUserIdArray ||
-      isUsernameArray
-      // || isUserAddressArray
-    ) {
-      if (
-        !isUserIdArray ||
-        !isUsernameArray
-        //  || !isUserAddressArray
-      ) {
-        throw new Error(
-          "If one of userId, username, and userAddress are provided as arrays, all must be arrays."
-        );
+    if (isUserIdArray || isUsernameArray) {
+      if (!isUserIdArray || !isUsernameArray) {
+        if (isV1 && !isUserAddressArray) {
+          throw new Error(
+            "If one of userId, username, and userAddress are provided as arrays, all must be arrays."
+          );
+        }
       }
     }
     // Create a transaction block
     const txb = new TransactionBlock();
 
     for (let i = 0; i < (isUserIdArray ? userId.length : 1); i++) {
+      const args = [
+        txb.object(ADMIN_CAP),
+        txb.pure(isUserIdArray ? userId[i] : userId),
+        txb.pure(isUsernameArray ? username[i] : username),
+      ];
+
+      if (isV1) {
+        args.push(txb.pure(isUserAddressArray ? userAddress[i] : userAddress));
+      }
+
       // Call the smart contract function to create a profile and the user identity
       txb.moveCall({
         target: `${PACKAGE_ID}::profile::new`,
-        arguments: [
-          txb.object(ADMIN_CAP),
-          txb.pure(isUserIdArray ? userId[i] : userId),
-          txb.pure(isUsernameArray ? username[i] : username),
-          // txb.pure(isUserAddressArray ? userAddress[i] : userAddress),
-        ],
+        arguments: args,
       });
     }
 
@@ -119,16 +119,16 @@ export class ProfileModule {
       };
     };
 
-    // const identityRes = response.objectChanges?.filter((object) => {
-    //   return (
-    //     object.type === "created" &&
-    //     object.objectType.startsWith(`${PACKAGE_ID}::identity::Identity`)
-    //   );
-    // }) as SuiObjectChangeCreated[];
+    const identityRes = response.objectChanges?.filter((object) => {
+      return (
+        object.type === "created" &&
+        object.objectType.startsWith(`${PACKAGE_ID}::identity::Identity`)
+      );
+    }) as SuiObjectChangeCreated[];
 
     return {
       profile: profileRes,
-      // identity: identityRes,
+      identity: identityRes,
     };
   }
 
@@ -391,6 +391,56 @@ export class ProfileModule {
     if (!response.effects?.created?.length) {
       throw new Error("Batch combo failed or did not return expected result.");
     }
+
+    return response;
+  }
+
+  async batchBurn(profileIds: string[], signer: Signer) {
+    const txb = new TransactionBlock();
+
+    for (const profileId of profileIds) {
+      let profile = await this.getProfileById(profileId);
+      const authorizations = profile.authorizations.keys();
+
+      for (const authorizationKey of authorizations) {
+        console.log(
+          "  -> Building Move call to deauthorize user: ",
+          authorizationKey
+        );
+        txb.moveCall({
+          target: `${PACKAGE_ID}::profile::deauthorize`,
+          arguments: [
+            txb.object(ADMIN_CAP),
+            txb.object(profileId),
+            txb.pure(authorizationKey),
+          ],
+        });
+      }
+
+      console.log("Building Move call to burn profile: ", profileId);
+
+      txb.moveCall({
+        target: `${PACKAGE_ID_V2}::profile::delete`,
+        arguments: [txb.object(ADMIN_CAP), txb.object(profileId)],
+      });
+    }
+
+    // Sign and execute the transaction as RECRD
+    const response = await executeTransaction({ txb, signer });
+
+    return response;
+  }
+
+  async burnIdentity(identityId: string, signer: Signer) {
+    const txb = new TransactionBlock();
+
+    txb.moveCall({
+      target: `${PACKAGE_ID_V2}::identity::delete`,
+      arguments: [txb.object(identityId)],
+    });
+
+    // Sign and execute the transaction as RECRD
+    const response = await executeTransaction({ txb, signer });
 
     return response;
   }

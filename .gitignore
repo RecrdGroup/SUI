@@ -34,7 +34,9 @@ migration.patch
 
 # env files under the setup directory
 *.env
+.env.upgrade
 .publish.res.json
+.publish_upgrade.res.json
 
 .structurizr/
 workspace.json
