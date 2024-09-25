@@ -129,7 +129,7 @@ module recrd::profile {
       user_id: _,
       username: _,
       authorizations,
-      watch_time: _, // initial watch time is zero
+      watch_time: _,
       videos_watched: _,
       adverts_watched: _,
       number_of_followers: _,
