@@ -62,7 +62,7 @@ module recrd::profile_v2 {
     profile: address
   }
 
-  public struct Profile has key {
+  public struct ProfileV2 has key {
     // unique id for the profile object
     id: UID,
     // user ID derived from RECRD app db
@@ -98,7 +98,7 @@ module recrd::profile_v2 {
     username: String,
     ctx: &mut TxContext
   ) {
-    let profile = Profile {
+    let profile = ProfileV2 {
       id: object::new(ctx),
       user_id,
       username,
@@ -118,8 +118,8 @@ module recrd::profile_v2 {
 
   /// Admin can delete a `Profile` object.
   /// Caution: Admin needs to have removed all authorizations prior to deleting the profile.
-  public fun delete(_: &AdminCap, self: Profile) {
-    let Profile {
+  public fun delete(_: &AdminCap, self: ProfileV2) {
+    let ProfileV2 {
       id,
       user_id: _,
       username: _,
@@ -139,28 +139,28 @@ module recrd::profile_v2 {
 
   /// Admin authorizes user with level of access to the profile.
   public fun authorize(
-    _: &AdminCap, self: &mut Profile, addr: address, access: u8
+    _: &AdminCap, self: &mut ProfileV2, addr: address, access: u8
   ) {
     self.authorizations.insert(addr, access);
   }
 
   /// Admin removes user's access to the profile.
   public fun deauthorize(
-    _: &AdminCap, self: &mut Profile, user: address
+    _: &AdminCap, self: &mut ProfileV2, user: address
   ) {
     self.authorizations.remove(&user);
   }
 
   /// Admin can receive `Master<T>` from a profile.
   public fun admin_receive_master<T: drop>(
-    _:&AdminCap, self: &mut Profile, master: Receiving<Master<T>>
+    _:&AdminCap, self: &mut ProfileV2, master: Receiving<Master<T>>
   ): Master<T> {
     self.receive_master_<T>(master)
   }
 
   /// Borrows Master<T> temporarily with a Promise to return it back. 
   public fun borrow_master<T: drop>(
-    self: &mut Profile, master: Receiving<Master<T>>, ctx: &mut TxContext
+    self: &mut ProfileV2, master: Receiving<Master<T>>, ctx: &mut TxContext
   ): (Master<T>, Promise) {
     // Users that have access above the BORROW_ACCESS threshold can borrow the master
     assert!(self.access_rights(ctx.sender()) >= BORROW_ACCESS, EInvalidAccessRights);
@@ -192,9 +192,9 @@ module recrd::profile_v2 {
   /// Buys a Master<T> object from a seller profile and transfers it to the 
   /// buyer profile after redeeming the receipt.
   public fun buy<T: drop>(
-    seller_profile: &mut Profile,
+    seller_profile: &mut ProfileV2,
     master: Receiving<Master<T>>,
-    buyer_profile: &mut Profile,
+    buyer_profile: &mut ProfileV2,
     receipt: Receiving<Receipt>,
   ) {
     // Receive the receipt from the buyer profile
@@ -223,12 +223,12 @@ module recrd::profile_v2 {
   // === Update functions ===
 
   // Admin can update the user ID. 
-  public fun update_user_id(_: &AdminCap, self: &mut Profile, new_user_id: String) {
+  public fun update_user_id(_: &AdminCap, self: &mut ProfileV2, new_user_id: String) {
     self.user_id = new_user_id;
   }
 
   // Authorized addresses can update username.
-  public fun update_username(self: &mut Profile, new_username: String, ctx: &mut TxContext) {
+  public fun update_username(self: &mut ProfileV2, new_username: String, ctx: &mut TxContext) {
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
     
@@ -237,7 +237,7 @@ module recrd::profile_v2 {
 
   // Authorized addresses can update watch time.
   public fun update_watch_time(
-    self: &mut Profile, new_watch_time: u64, ctx: &mut TxContext
+    self: &mut ProfileV2, new_watch_time: u64, ctx: &mut TxContext
   ) {
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
@@ -250,7 +250,7 @@ module recrd::profile_v2 {
 
   // Authorized addresses can update number of videos watched. 
   public fun update_videos_watched(
-    self: &mut Profile, new_videos_watched: u64, ctx: &mut TxContext
+    self: &mut ProfileV2, new_videos_watched: u64, ctx: &mut TxContext
   ) {
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
@@ -263,7 +263,7 @@ module recrd::profile_v2 {
 
   // Authorized addresses can update number of adverts watched. 
   public fun update_adverts_watched(
-    self: &mut Profile, new_adverts_watched: u64, ctx: &mut TxContext
+    self: &mut ProfileV2, new_adverts_watched: u64, ctx: &mut TxContext
   ) {
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
@@ -276,7 +276,7 @@ module recrd::profile_v2 {
 
   // Authorized addresses can update number of followers.
   public fun update_number_of_followers( 
-    self: &mut Profile, new_number_of_followers: u64, ctx: &mut TxContext
+    self: &mut ProfileV2, new_number_of_followers: u64, ctx: &mut TxContext
   ) {
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
@@ -286,7 +286,7 @@ module recrd::profile_v2 {
 
   // Authorized addresses can update number of following users.
   public fun update_number_of_following(
-    self: &mut Profile, new_number_of_following: u64, ctx: &mut TxContext
+    self: &mut ProfileV2, new_number_of_following: u64, ctx: &mut TxContext
   ) {
     // Only addresses with minimum UPDATE_ACCESS can update. 
     assert!(self.access_rights(ctx.sender()) >= UPDATE_ACCESS, EUpdateNotAuthorized);
@@ -296,7 +296,7 @@ module recrd::profile_v2 {
 
   // Admin can update the ad revenue.
   public fun update_ad_revenue(
-    _: &AdminCap, self: &mut Profile, new_ad_revenue: u64,
+    _: &AdminCap, self: &mut ProfileV2, new_ad_revenue: u64,
   ) {
     assert!(new_ad_revenue > self.ad_revenue, ENewValueShouldBeHigher);
     self.ad_revenue = new_ad_revenue;
@@ -304,7 +304,7 @@ module recrd::profile_v2 {
 
   // Admin can update the commission revenue.
   public fun update_commission_revenue(
-    _: &AdminCap, self: &mut Profile, new_commission_revenue: u64,
+    _: &AdminCap, self: &mut ProfileV2, new_commission_revenue: u64,
   ) {
     assert!(new_commission_revenue > self.commission_revenue, ENewValueShouldBeHigher);
     self.commission_revenue = new_commission_revenue;
@@ -312,7 +312,7 @@ module recrd::profile_v2 {
 
   // Admin can update the authorization table.
   public fun update_authorization(
-    _: &AdminCap, self: &mut Profile, addr: address, new_access: u8
+    _: &AdminCap, self: &mut ProfileV2, addr: address, new_access: u8
   ) {
     update_authorization_(self, addr, new_access);
   }
@@ -320,54 +320,54 @@ module recrd::profile_v2 {
   // === Accessors ===
 
   // Returns the user ID.
-  public fun user_id(self: &Profile): &String {
+  public fun user_id(self: &ProfileV2): &String {
     &self.user_id
   }
 
   // Returns the username.
-  public fun username(self: &Profile): &String {
+  public fun username(self: &ProfileV2): &String {
     &self.username
   }
 
   // Returns the level of access for given address.
-  public fun access_rights(self: &Profile, user: address): u8 {
+  public fun access_rights(self: &ProfileV2, user: address): u8 {
     // First checks whether the address exists in the authorizations table.
     assert!(self.authorizations.contains(&user), ENotAuthorized);
     *self.authorizations.get(&user)
   }
 
   // Returns the watch time for given profile.
-  public fun watch_time(self: &Profile): &u64 {
+  public fun watch_time(self: &ProfileV2): &u64 {
     &self.watch_time
   }
 
   // Returns the number of videos watched for given profile.
-  public fun videos_watched(self: &Profile): &u64 {
+  public fun videos_watched(self: &ProfileV2): &u64 {
     &self.videos_watched
   }
 
   // Returns the number of adverts watched for given profile.
-  public fun adverts_watched(self: &Profile): &u64 {
+  public fun adverts_watched(self: &ProfileV2): &u64 {
     &self.adverts_watched
   }
   
   // Returns the number of followers for given profile.
-  public fun number_of_followers(self: &Profile): &u64 {
+  public fun number_of_followers(self: &ProfileV2): &u64 {
     &self.number_of_followers
   }
 
   // Returns the number users given profile is following.
-  public fun number_of_following(self: &Profile): &u64 {
+  public fun number_of_following(self: &ProfileV2): &u64 {
     &self.number_of_following
   }
 
   // Returns the ad revenue for given profile.
-  public fun ad_revenue(self: &Profile): &u64 {
+  public fun ad_revenue(self: &ProfileV2): &u64 {
     &self.ad_revenue
   }
   
   // Returns the commission revenue for given profile.
-  public fun commission_revenue(self: &Profile): &u64 {
+  public fun commission_revenue(self: &ProfileV2): &u64 {
     &self.commission_revenue
   }
 
@@ -375,13 +375,13 @@ module recrd::profile_v2 {
 
   /// Receives `Master<T>` from `Profile`
   fun receive_master_<T: drop>(
-    self: &mut Profile, master_to_receive: Receiving<Master<T>>
+    self: &mut ProfileV2, master_to_receive: Receiving<Master<T>>
   ): Master<T> {
     transfer::public_receive<Master<T>>(&mut self.id, master_to_receive)
   }
 
   /// Updates the access level of given address in the `Profile` authorization table.
-  fun update_authorization_(self: &mut Profile, addr: address, new_access: u8) {
+  fun update_authorization_(self: &mut ProfileV2, addr: address, new_access: u8) {
     // Check whether given address exists in authorization table. 
     assert!(self.authorizations.contains(&addr), ENotAuthorized);
 
@@ -391,8 +391,8 @@ module recrd::profile_v2 {
 
   // === Test Only ===
   #[test_only]
-  public fun create_for_testing(user_id: String, username: String, ctx: &mut TxContext): Profile {
-    Profile {
+  public fun create_for_testing(user_id: String, username: String, ctx: &mut TxContext): ProfileV2 {
+    ProfileV2 {
       id: object::new(ctx),
       user_id,
       username,
@@ -408,8 +408,8 @@ module recrd::profile_v2 {
   }
 
   #[test_only]
-  public fun burn_for_testing(profile: Profile) {
-     let Profile {
+  public fun burn_for_testing(profile: ProfileV2) {
+     let ProfileV2 {
       id,
       user_id: _,
       username: _,

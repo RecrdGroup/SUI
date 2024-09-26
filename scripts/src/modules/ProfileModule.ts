@@ -420,7 +420,7 @@ export class ProfileModule {
       console.log("Building Move call to burn profile: ", profileId);
 
       txb.moveCall({
-        target: `${PACKAGE_ID_V2}::profile::delete`,
+        target: `${PACKAGE_ID_V2}::profile_v2::delete`,
         arguments: [txb.object(ADMIN_CAP), txb.object(profileId)],
       });
     }

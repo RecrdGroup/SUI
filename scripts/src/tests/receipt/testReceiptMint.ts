@@ -30,20 +30,20 @@ import { getSigner, getSuiAddress } from "../../utils";
     const buyerProfileRes = await profileModule.new(
       "buyer12345",
       "buyer-chan",
-      getSuiAddress(USER_PRIVATE_KEY),
       getSigner(RECRD_PRIVATE_KEY)
+      // getSuiAddress(USER_PRIVATE_KEY)
     );
 
     // Write the buyer profile ID to a temp file
     writeFileSync(
       join(__dirname, "..", "tempBuyerProfileId.txt"),
-      buyerProfileRes.profile.objectId
+      buyerProfileRes.profile?.[0]?.objectId
     );
 
     // Create a new Receipt
     const res = await receiptModule.newReceipt(
       masterId,
-      buyerProfileRes.profile.objectId,
+      buyerProfileRes.profile?.[0]?.objectId,
       sellerProfileId,
       getSigner(RECRD_PRIVATE_KEY)
     );
