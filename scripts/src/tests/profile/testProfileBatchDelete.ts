@@ -22,7 +22,7 @@ import { join } from "path";
     const profileIdsArr = profileIds.split("\n");
 
     // Batch burn profiles user to update profile
-    const profileRes = await profileModule.batchBurn(
+    const profileRes = await profileModule.batchDelete(
       profileIdsArr,
       getSigner(RECRD_PRIVATE_KEY)
     );

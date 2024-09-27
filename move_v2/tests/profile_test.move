@@ -6,7 +6,7 @@ module recrd::profile_test {
     use sui::test_scenario::{Self as ts, Scenario};
 
     use recrd::core::{Self};
-    use recrd::profile::{Self, Profile, ENewValueShouldBeHigher, ENotAuthorized};
+    use recrd::profile::{Self, Profile, ENewValueShouldBeHigher, ENotAuthorized, EAuthorizationsExist};
     use recrd::identity::{Identity};
 
     // === Constants ===
@@ -76,6 +76,38 @@ module recrd::profile_test {
         {
             let profile_cap = ts::take_from_sender<Identity>(&scenario);
             ts::return_to_sender(&scenario, profile_cap);
+        };
+
+        ts::end(scenario);
+    }
+
+    #[test]
+    public fun deletes_profile() {
+        let mut scenario = ts::begin(ADMIN);
+        create_profile(&mut scenario);
+
+        // Deletes profile
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::delete(&admin_cap, profile);
+            core::burn_admincap(admin_cap);
+        };
+
+        ts::end(scenario);
+    }
+
+    #[test]
+    public fun deletes_identity() {
+        let mut scenario = ts::begin(ADMIN);
+        create_profile(&mut scenario);
+
+        // Delete user's identity
+        ts::next_tx(&mut scenario, USER);
+        {
+            let identity = ts::take_from_sender<Identity>(&scenario);
+            identity.delete()
         };
 
         ts::end(scenario);
@@ -291,6 +323,34 @@ module recrd::profile_test {
             let profile = ts::take_shared<Profile>(&scenario);
             profile::access_rights(&profile, USER_PROFILE);
             ts::return_shared(profile);
+        };
+
+        ts::end(scenario);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = EAuthorizationsExist)]
+    public fun deletes_non_empty_authorization_profile() {
+        let mut scenario = ts::begin(ADMIN);
+        create_profile(&mut scenario);
+
+        // Add an authorization
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let mut profile = ts::take_shared<Profile>(&scenario);
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::authorize(&admin_cap, &mut profile, USER_PROFILE, 100);
+            core::burn_admincap(admin_cap);
+            ts::return_shared(profile);
+        };
+
+        // Deletes profile
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let profile = ts::take_shared<Profile>(&scenario);
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::delete(&admin_cap, profile);
+            core::burn_admincap(admin_cap);
         };
 
         ts::end(scenario);

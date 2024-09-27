@@ -29,6 +29,7 @@ module recrd::profile {
   const EMasterReceiptNotClaimed: u64 = 6;
   const EUpdateNotAuthorized: u64 = 7;
   const EBorrowNotAllowed: u64 = 8;
+  const EAuthorizationsExist: u64 = 9;
 
   // === Constants ===
 
@@ -138,6 +139,8 @@ module recrd::profile {
       commission_revenue: _,
     } = self;
 
+    assert!(authorizations.is_empty(), EAuthorizationsExist);
+    
     authorizations.destroy_empty();
     id.delete();
   }

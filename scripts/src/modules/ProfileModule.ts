@@ -395,7 +395,7 @@ export class ProfileModule {
     return response;
   }
 
-  async batchBurn(profileIds: string[], signer: Signer) {
+  async batchDelete(profileIds: string[], signer: Signer, version: number = 1) {
     const txb = new TransactionBlock();
 
     for (const profileId of profileIds) {
@@ -417,10 +417,12 @@ export class ProfileModule {
         });
       }
 
-      console.log("Building Move call to burn profile: ", profileId);
+      console.log("Building Move call to delete profile: ", profileId);
 
       txb.moveCall({
-        target: `${PACKAGE_ID_V2}::profile_v2::delete`,
+        target: `${PACKAGE_ID_V2}::profile${
+          version === 1 ? "" : "_v2"
+        }::delete`,
         arguments: [txb.object(ADMIN_CAP), txb.object(profileId)],
       });
     }
