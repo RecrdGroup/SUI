@@ -6,7 +6,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "updateDisplay": "ts-node src/updateDisplay.ts",
     "testProfileNew": "ts-node src/tests/profile/testProfileNew.ts",
+    "testProfileBatchNew": "ts-node src/tests/profile/testProfileBatchNew.ts",
     "testProfileAuthorize": "ts-node src/tests/profile/testProfileAuthorize.ts",
+    "testProfileBatchAuthorize": "ts-node src/tests/profile/testProfileBatchAuthorize.ts",
+    "testProfileBatchDelete": "ts-node src/tests/profile/testProfileBatchDelete.ts",
     "testProfileDeauthorize": "ts-node src/tests/profile/testProfileDeauthorize.ts",
     "testProfileUpdate": "ts-node src/tests/profile/testProfileUpdate.ts",
     "testProfileReceive": "ts-node src/tests/profile/testProfileReceive.ts",
@@ -21,7 +24,9 @@
     "testMasterSetOnSale": "ts-node src/tests/master/testMasterSetOnSale.ts",
     "testMasterRetain": "ts-node src/tests/master/testMasterRetain.ts",
     "testMasterSuspend": "ts-node src/tests/master/testMasterSuspend.ts",
-    "testMasterUnsuspend": "ts-node src/tests/master/testMasterUnsuspend.ts"
+    "testMasterUnsuspend": "ts-node src/tests/master/testMasterUnsuspend.ts",
+    "testProfileBatchCombo": "ts-node src/tests/profile/testProfileBatchCombo.ts",
+    "testIdentityDelete": "ts-node src/tests/identity/testIdentityDelete.ts"
   },
   "author": "",
   "license": "ISC",

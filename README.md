@@ -26,9 +26,16 @@ Has 4 modules; core, master, profile & receipt.
   - NOTE: The script will pick the first account that can be seen from the `sui client addresses` command and use it as the publisher / admin account.
   - NOTE: For some of the commands you will need to have a second account that will be used as the user account. For this purpose fill in the `USER_PRIVATE_KEY` variable in the .env file with the private key of another account.
 - Now you can run the integration tests. Ssome commands require as inputs objects that other commands create so make sure that you first run any prerequisite commands to interact with the modules.
+
   - Available commands:
-    - `npm run testProfileNew` to mint a profile.
+
+    - `npm run testProfileNew` to mint a profile. CAUTION: Need to edit based on contract version (V1, V2) -- see corresponding file for more details
+    - `npm run testProfileBatchNew` to mint multiple profiles. CAUTION: Need to edit based on contract version (V1, V2) -- see corresponding file for more details
     - `npm run testProfileAuthorize` to authorize an address to have a prticular access over the profile.
+      - Requires a profile to be created first.
+    - `npm run testProfileBatchAuthorize` to authorize multiple addresses to have a prticular access over the profile.
+      - Requires a profile to be created first.
+    - `npm run testProfileBatchDelete` to batch delete multiple profiles.
       - Requires a profile to be created first.
     - `npm run testProfileDeauthorize` to deauthorize an address from accessing the profile entirely.
       - Requires a profile to be created first & an address to be authorized.
@@ -64,4 +71,8 @@ Has 4 modules; core, master, profile & receipt.
       - Requires a master to be minted first under a profile and be suspended.
     - `npm run testMetadataSetTitleAndSync` to set a title for a Metadata object and sync it with the master.
       - Requires a master to be minted first under a profile.
+    - `npm run testProfileBatchCombo` to test a realistic mainnet combination scenario of profile creations and user authorizations. Edit the file to configure the number of profiles and authorizations.
+    - `npm run testIdentityDelete` to delete a user's identity.
+      - Requires a profile to be created first.
+
   - To check transaction outputs in detail you can visit an explorer such as [Sui Explorer](https://suiexplorer.com/?network=testnet) and paste the digest in the search bar, which is printed by each script command, to see the full transaction effects.
