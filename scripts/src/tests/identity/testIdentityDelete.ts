@@ -21,7 +21,7 @@ import { join } from "path";
 
     console.log("Identity ID:", identityId);
     // Burn User's Identity
-    const identiyBurnRes = await profileModule.burnIdentity(
+    const identiyBurnRes = await profileModule.deleteIdentity(
       identityId,
       getSigner(USER_PRIVATE_KEY)
     );

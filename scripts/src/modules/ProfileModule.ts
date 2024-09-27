@@ -433,7 +433,7 @@ export class ProfileModule {
     return response;
   }
 
-  async burnIdentity(identityId: string, signer: Signer) {
+  async deleteIdentity(identityId: string, signer: Signer) {
     const txb = new TransactionBlock();
 
     txb.moveCall({
