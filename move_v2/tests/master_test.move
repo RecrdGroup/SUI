@@ -11,7 +11,7 @@ module recrd::master_test {
 
     use recrd::core::{Self};
     use recrd::identity;
-    use recrd::profile::{Self, Profile};
+    use recrd::profile;
     use recrd::master::{
         Self, 
         Master, 
@@ -365,23 +365,18 @@ module recrd::master_test {
 
         // Create Profile for user
         ts::next_tx(&mut scenario, ADMIN);
-        {
-            profile::new(
-                &admin_cap, 
-                utf8(USER_ID), 
-                utf8(USERNAME), 
-                USER,
-                ts::ctx(&mut scenario)
-            );
-        };
+        let ctx = ts::ctx(&mut scenario);
+        let profile = profile::create_for_testing(
+            utf8(USER_ID),
+            utf8(USERNAME),
+            ctx
+        );
 
         // Create an Identity and transfer to user
         ts::next_tx(&mut scenario, USER);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
             let identity = identity::create_for_testing(object::id(&profile), ts::ctx(&mut scenario));
             identity::transfer(identity, USER);
-            ts::return_shared(profile);
         };
 
         ts::next_tx(&mut scenario, ADMIN);
@@ -420,6 +415,14 @@ module recrd::master_test {
         ts::next_tx(&mut scenario, ADMIN);
         {
             assert!(master::sale_status(&master) == RETAINED, EInvalidMasterValue);
+        };
+
+        // Deletes profile
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::delete(&admin_cap, profile);
+            core::burn_admincap(admin_cap);
         };
 
         let _ = master::burn_master(&admin_cap, master);
@@ -661,23 +664,18 @@ module recrd::master_test {
 
         // Create Profile for user
         ts::next_tx(&mut scenario, ADMIN);
-        {
-            profile::new(
-                &admin_cap, 
-                utf8(USER_ID), 
-                utf8(USERNAME), 
-                USER,
-                ts::ctx(&mut scenario)
-            );
-        };
+        let ctx = ts::ctx(&mut scenario);
+        let profile = profile::create_for_testing(
+            utf8(USER_ID),
+            utf8(USERNAME),
+            ctx
+        );
 
         // Create an Identity and transfer to user
         ts::next_tx(&mut scenario, USER);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
             let identity = identity::create_for_testing(object::id(&profile), ts::ctx(&mut scenario));
             identity::transfer(identity, USER);
-            ts::return_shared(profile);
         };
 
         ts::next_tx(&mut scenario, USER);
@@ -690,6 +688,14 @@ module recrd::master_test {
         {
             // User tries to list for sale
             master::list(&mut master);
+        };
+
+        // Deletes profile
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::delete(&admin_cap, profile);
+            core::burn_admincap(admin_cap);
         };
 
         master::burn_master(&admin_cap, master);
@@ -712,23 +718,18 @@ module recrd::master_test {
 
         // Create Profile for user
         ts::next_tx(&mut scenario, ADMIN);
-        {
-            profile::new(
-                &admin_cap, 
-                utf8(USER_ID), 
-                utf8(USERNAME), 
-                USER,
-                ts::ctx(&mut scenario)
-            );
-        };
+        let ctx = ts::ctx(&mut scenario);
+        let profile = profile::create_for_testing(
+            utf8(USER_ID),
+            utf8(USERNAME),
+            ctx
+        );
 
         // Create an Identity and transfer to user
         ts::next_tx(&mut scenario, USER);
         {
-            let profile = ts::take_shared<Profile>(&scenario);
             let identity = identity::create_for_testing(object::id(&profile), ts::ctx(&mut scenario));
             identity::transfer(identity, USER);
-            ts::return_shared(profile);
         };
 
         ts::next_tx(&mut scenario, USER);
@@ -741,6 +742,14 @@ module recrd::master_test {
         {
             // User tries to list for sale
             master::unlist(&mut master);
+        };
+
+        // Deletes profile
+        ts::next_tx(&mut scenario, ADMIN);
+        {
+            let admin_cap = core::mint_for_testing(ts::ctx(&mut scenario));
+            profile::delete(&admin_cap, profile);
+            core::burn_admincap(admin_cap);
         };
 
         master::burn_master(&admin_cap, master);

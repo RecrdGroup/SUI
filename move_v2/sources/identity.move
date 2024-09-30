@@ -6,6 +6,9 @@ module recrd::identity {
   // === Custom Receivers ===
   use fun new as ID.new;
 
+  #[error]
+  const EDeprecatedCall: vector<u8> = b"This function call is deprecated in the V2 implementation of Profile.";
+
   // Profile identity for users to link their account to their Profile. 
   public struct Identity has key {
     id: UID,
@@ -15,12 +18,18 @@ module recrd::identity {
   // === Admin Functions ===
 
   /// Admin can send more Identities to users that have existing Profile. 
+  #[allow(dead_code)]
   public fun admin_new(_: &AdminCap, profile_id: ID, ctx: &mut TxContext): Identity {
+    // Throws a deprecated call error.
+    abort EDeprecatedCall;
     profile_id.new(ctx)
   }
 
   /// Admin can transfer Identities to other users.
+  #[allow(dead_code)]
   public fun admin_transfer(_: &AdminCap, self: Identity, addr: address) {
+    // Throws a deprecated call error.
+    abort EDeprecatedCall;
     self.transfer(addr);
   }
 

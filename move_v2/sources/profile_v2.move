@@ -119,25 +119,38 @@ module recrd::profile_v2 {
 
   /// Admin can delete a `Profile` object.
   /// Caution: Admin needs to have removed all authorizations prior to deleting the profile.
-  public fun delete(_: &AdminCap, self: ProfileV2) {
+  public fun delete(
+    _: &AdminCap, self: ProfileV2
+  ): (String, String, u64, u64, u64, u64, u64, u64, u64) {
     let ProfileV2 {
       id,
-      user_id: _,
-      username: _,
+      user_id,
+      username,
       authorizations,
-      watch_time: _,
-      videos_watched: _,
-      adverts_watched: _,
-      number_of_followers: _,
-      number_of_following: _,
-      ad_revenue: _,
-      commission_revenue: _,
+      watch_time,
+      videos_watched,
+      adverts_watched,
+      number_of_followers,
+      number_of_following,
+      ad_revenue,
+      commission_revenue,
     } = self;
 
     assert!(authorizations.is_empty(), EAuthorizationsExist);
     
     authorizations.destroy_empty();
     id.delete();
+
+    ( user_id,
+      username,
+      watch_time, 
+      videos_watched, 
+      adverts_watched, 
+      number_of_followers, 
+      number_of_following, 
+      ad_revenue, 
+      commission_revenue
+    )
   }
 
   /// Admin authorizes user with level of access to the profile.
