@@ -89,7 +89,7 @@ For the upgrade:
 1. Navigate to the scripts folder (commands run relative to that path).
 1. Make sure you have the .env file with the values that were produced when you deployed the original package (v1).
 1. Make sure you are in the correct network on the sui CLI and have enough funds and run the upgrade script `./upgrade_to_v2.sh`.
-1. A new `.env.upgrade` file will be created with the new package address and the transaction digest.
+1. A new `.env.upgrade` file will be created with the new package address and the transaction digest. This file will be used by the TS integration tests to interact with the upgraded package.
 
 ## Some notes on how to interact with upgraded packages
 
