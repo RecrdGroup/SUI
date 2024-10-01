@@ -10,7 +10,14 @@ done
 
 source .env
 
-publish_res=$(sui client upgrade --skip-dependency-verification --gas-budget 200000000 --upgrade-capability $RECRD_UPGRADE_CAP --json ../move_v2)
+sui move manage-package --environment $(sui client active-env) \
+                  --network-id $(sui client chain-identifier) \
+                  --original-id $RECRD_PACKAGE_ID \
+                  --latest-id $RECRD_PACKAGE_ID \
+                  --version-number 1 \
+                  --path ../move_v2
+
+publish_res=$(sui client upgrade --gas-budget 200000000 --upgrade-capability $RECRD_UPGRADE_CAP --json ../move_v2)
 
 echo ${publish_res} >.publish_upgrade.res.json
 

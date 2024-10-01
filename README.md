@@ -76,3 +76,22 @@ Has 4 modules; core, master, profile & receipt.
       - Requires a profile to be created first.
 
   - To check transaction outputs in detail you can visit an explorer such as [Sui Explorer](https://suiexplorer.com/?network=testnet) and paste the digest in the search bar, which is printed by each script command, to see the full transaction effects.
+
+# Smart Contract Upgrade
+
+Before starting make sure that:
+
+- You have updated to the latest stable rust version by running `rustup update stable`.
+- Install the latest mainnet release of the Sui CLI. Depending on your initial installation you will need to choose the appropriate command (see more details [here](https://docs.sui.io/references/cli#update-cli))
+
+For the upgrade:
+
+1. Navigate to the scripts folder (commands run relative to that path).
+1. Make sure you have the .env file with the values that were produced when you deployed the original package (v1).
+1. Make sure you are in the correct network on the sui CLI and have enough funds and run the upgrade script `./upgrade_to_v2.sh`.
+1. A new `.env.upgrade` file will be created with the new package address and the transaction digest.
+
+## Some notes on how to interact with upgraded packages
+
+1. For types always use as a package prefix the module that first declared them. For example `0xPackageAddress_V1::profile::Profile` and not `0xPackageAddress_V2::profile::Profile`. Similarly, since ProfileV2 has been declared on the upgraded package, use `0xPackageAddress_V2::profile_v2::ProfileV2` and not `0xPackageAddress_V1::profile::Profile` when interacting with the ProfileV2 type.
+1. For functions always use the latest package address. Since that one is a superset of the previous package functionality. For example `0xPackageAddress_V2::profile_v2::new` and not `0xPackageAddress_V1::profile_v2::new`.

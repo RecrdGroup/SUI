@@ -2,7 +2,6 @@
 name = "recrd"
 version = "0.0.2"
 edition = "2024.beta"
-published-at = "0x6d5f3e2407cfaea4dc58c98f8bb0bbe8f237c66d18bf19275476a0790ea12865"
 # edition = "2024.alpha" # To use the Move 2024 edition, currently in alpha
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
 # authors = ["..."]      # e.g., ["Joe Smith (joesmith@noemail.com)", "John Snow (johnsnow@noemail.com)"]
