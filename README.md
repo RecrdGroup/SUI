@@ -82,7 +82,7 @@ Has 4 modules; core, master, profile & receipt.
 Before starting make sure that:
 
 - You have updated to the latest stable rust version by running `rustup update stable`.
-- Install the latest mainnet release of the Sui CLI. Depending on your initial installation you will need to choose the appropriate command (see more details [here](https://docs.sui.io/references/cli#update-cli))
+- Install the latest release of the Sui CLI based on where you are publishing (devnet, testnet, mainnet). Depending on your initial installation you will need to choose the appropriate command (see more details [here](https://docs.sui.io/references/cli#update-cli))
 
 For the upgrade:
 
