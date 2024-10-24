@@ -14,12 +14,12 @@ on:
       rpc:
         description: "RPC URL"
         required: true
-        default: "https://mysten-rpc.testnet.sui.io:443"
+        default: "https://fullnode.testnet.sui.io:443"
         type: choice
         options:
-          - "https://mysten-rpc.mainnet.sui.io:443"
-          - "https://mysten-rpc.testnet.sui.io:443"
-          - "https://mysten-rpc.devnet.sui.io:443"
+          - "https://fullnode.mainnet.sui.io:443"
+          - "https://fullnode.testnet.sui.io:443"
+          - "https://fullnode.devnet.sui.io:443"
       gas_object_id:
         description: "Gas coin ID (e.g. from multisig account)"
         required: true
