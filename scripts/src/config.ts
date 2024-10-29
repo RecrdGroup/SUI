@@ -7,9 +7,13 @@ import { config } from "dotenv";
 
 const envPath = path.resolve(__dirname, "../.env");
 
+const envPathV2 = path.resolve(__dirname, "../.env.upgrade");
+
 config({
   path: envPath,
 });
+
+config({ path: envPathV2 });
 
 // Load the environment variables
 export const SUI_NETWORK = process.env.SUI_NETWORK!;
@@ -20,6 +24,9 @@ export const PUBLISHER = process.env.MASTER_PUBLISHER!;
 export const REGISTRY = process.env.REGISTRY!;
 export const RECRD_PRIVATE_KEY = process.env.RECRD_PRIVATE_KEY!;
 export const USER_PRIVATE_KEY = process.env.USER_PRIVATE_KEY!;
+
+export const PACKAGE_ID_V2 = process.env.NEW_PACKAGE_ID!;
+export const DIGEST_V2 = process.env.DIGEST_V2!;
 
 // Create a SuiClient instance.
 export const suiClient = new SuiClient({
@@ -55,6 +62,8 @@ export const LOYALTY_FREE_URL =
 
 const keys = Object.keys(process.env);
 console.log("env contains PACKAGE_ID:", keys.includes("RECRD_PACKAGE_ID"));
+console.log("env contains PACKAGE_ID_V2:", keys.includes("NEW_PACKAGE_ID"));
+
 console.log("env contains ADMIN_CAP:", keys.includes("CORE_ADMIN_CAP"));
 console.log(
   "env contains RECRD_PRIVATE_KEY:",
