@@ -20,7 +20,7 @@ fi
 
 # Define paths for the Move files and output
 BASE_DIR=$(pwd)
-MOVE_PATH="$BASE_DIR/../../../move"
+MOVE_PATH="$BASE_DIR/../../../move_v2"
 TX_OUTPUT_DIR="$BASE_DIR/../../tx"
 TX_OUTPUT_FILE="${TX_OUTPUT_DIR}/upgrade-tx-data.txt"
 
