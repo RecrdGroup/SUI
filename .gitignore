@@ -43,3 +43,4 @@ workspace.json
 
 # Custom temp files for test
 temp*.txt
+.secrets
