@@ -1,6 +1,6 @@
 [package]
 name = "recrd"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2024.beta"
 # edition = "2024.alpha" # To use the Move 2024 edition, currently in alpha
 # license = ""           # e.g., "MIT", "GPL", "Apache 2.0"
@@ -37,3 +37,4 @@ recrd = "0x0"
 # The dev-addresses section allows overwriting named addresses for the `--test`
 # and `--dev` modes.
 # alice = "0xB0B"
+

@@ -21,37 +21,41 @@ if [ $# -ne 0 ]; then
   fi
 fi
 
-echo "- Admin Address is: ${ADMIN_ADDRESS}"
+PRIVATE_KEY=$(cat ~/.sui/sui_config/sui.keystore | jq -r '.[0]')
 
-import_address=$(sui keytool import "$ADMIN_PHRASE" ed25519)
+publish_res=$(sui client publish --skip-fetch-latest-git-deps --gas-budget 200000000 --json ${MOVE_PACKAGE_PATH} --skip-dependency-verification)
 
-switch_res=$(sui client switch --address ${ADMIN_ADDRESS})
-
-publish_res=$(sui client publish --skip-fetch-latest-git-deps --gas-budget 2000000000 --json ${MOVE_PACKAGE_PATH})
-
-echo ${publish_res} >.publish.res.json
-
+echo ${publish_res} >.publish.res2.json
+echo $publish_res
 # Check if the command succeeded (exit status 0)
 if [[ "$publish_res" =~ "error" ]]; then
+  echo $publish_res
   # If yes, print the error message and exit the script
   echo "Error during move contract publishing.  Details : $publish_res"
   exit 1
 fi
 
 publishedObjs=$(echo "$publish_res" | jq -r '.objectChanges[] | select(.type == "published")')
-
-PACKAGE_ID=$(echo "$publishedObjs" | jq -r '.packageId')
+DIGEST=$(echo "$publish_res" | jq -r '.digest')
+PACKAGE_ID=$(echo "$publishedObjs``" | jq -r '.packageId')
 
 newObjs=$(echo "$publish_res" | jq -r '.objectChanges[] | select(.type == "created")')
 
 ADMIN_CAP_ID=$(echo "$newObjs" | jq -r 'select (.objectType | contains("core::AdminCap")).objectId')
+UPGRADE_CAP_ID=$(echo "$newObjs" | jq -r 'select (.objectType | contains("::package::UpgradeCap")).objectId')
+PUBLISHER=$(echo "$newObjs" | jq -r 'select (.objectType | contains("package::Publisher")).objectId')
+REGISTRY=$(echo "$newObjs" | jq -r 'select (.objectType | contains("::core::Registry")).objectId')
 
 cat >.env<<-ENV
 SUI_NETWORK=$NETWORK
-PACKAGE_ADDRESS=$PACKAGE_ID
-ADMIN_CAP=$ADMIN_CAP_ID
-ADMIN_ADDRESS=$ADMIN_ADDRESS
-ADMIN_PHRASE=$ADMIN_PHRASE
+DIGEST=$DIGEST
+RECRD_PACKAGE_ID=$PACKAGE_ID
+RECRD_UPGRADE_CAP=$UPGRADE_CAP_ID
+CORE_ADMIN_CAP=$ADMIN_CAP_ID
+PUBLISHER=$PUBLISHER
+REGISTRY=$REGISTRY
+RECRD_PRIVATE_KEY=$PRIVATE_KEY
+USER_PRIVATE_KEY=
 ENV
 
 echo "Contract Deployment finished!"

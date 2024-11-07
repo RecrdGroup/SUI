@@ -29,7 +29,10 @@ module recrd::profile {
   const EMasterReceiptNotClaimed: u64 = 6;
   const EUpdateNotAuthorized: u64 = 7;
   const EBorrowNotAllowed: u64 = 8;
+  const EAuthorizationsExist: u64 = 9;
 
+  #[error]
+  const EDeprecatedCall: vector<u8> = b"This function call is deprecated in the V2 implementation of Profile.";
   // === Constants ===
 
   // Levelling will be facilitated in the range [0, 255] and
@@ -94,9 +97,12 @@ module recrd::profile {
   /// Creates a new `Profile` object and a new `Identity` for the user.
   /// `Profile` will be publicly shared and `Identity` will be returned, so 
   /// that it can be transferred via PTBs.
+  #[allow(dead_code)]
   public fun new(
     _: &AdminCap, user_id: String, username: String, addr: address, ctx: &mut TxContext
   ) {
+    abort EDeprecatedCall;
+
     let profile = Profile {
       id: object::new(ctx),
       user_id,
@@ -119,6 +125,42 @@ module recrd::profile {
     // Give the user an Identity cap tied to their Profile.
     let identity = identity::new(profile_id, ctx);
     identity::transfer(identity, addr);
+  }
+
+  /// Admin can delete a `Profile` object.
+  /// Caution: Admin needs to have removed all authorizations prior to deleting the profile.
+  public fun delete(_: &AdminCap, self: Profile
+  ): (String, String, u64, u64, u64, u64, u64, u64, u64) {
+    let Profile {
+      id,
+      user_id,
+      username,
+      authorizations,
+      watch_time,
+      videos_watched,
+      adverts_watched,
+      number_of_followers,
+      number_of_following,
+      ad_revenue,
+      commission_revenue,
+    } = self;
+
+    assert!(authorizations.is_empty(), EAuthorizationsExist);
+    
+    authorizations.destroy_empty();
+    id.delete();
+
+    (
+      user_id,
+      username,
+      watch_time,
+      videos_watched,
+      adverts_watched,
+      number_of_followers,
+      number_of_following,
+      ad_revenue,
+      commission_revenue,
+    )
   }
 
   /// Admin authorizes user with level of access to the profile.
