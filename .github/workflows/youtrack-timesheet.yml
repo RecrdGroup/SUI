@@ -1,0 +1,9 @@
+name: YouTrack timesheet
+on:
+  push:
+    branches-ignore: [main, master, staging, develop]
+jobs:
+  log:
+    uses: RecrdGroup/recrd-workflows/.github/workflows/youtrack-timesheet.yml@main
+    secrets:
+      YOUTRACK_TOKEN: ${{ secrets.YOUTRACK_TOKEN }}
