@@ -2,8 +2,21 @@ name: YouTrack timesheet
 on:
   push:
     branches-ignore: [main, master, staging, develop]
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
+  issue_comment:
+    types: [created]
 jobs:
-  log:
+  commits:
+    if: github.event_name == 'push'
     uses: RecrdGroup/recrd-workflows/.github/workflows/youtrack-timesheet.yml@main
+    secrets:
+      YOUTRACK_TOKEN: ${{ secrets.YOUTRACK_TOKEN }}
+  review:
+    # issue_comment fires on plain issues too — only act when it's a PR.
+    if: github.event_name != 'push' && (github.event_name != 'issue_comment' || github.event.issue.pull_request)
+    uses: RecrdGroup/recrd-workflows/.github/workflows/youtrack-timesheet-review.yml@main
     secrets:
       YOUTRACK_TOKEN: ${{ secrets.YOUTRACK_TOKEN }}
